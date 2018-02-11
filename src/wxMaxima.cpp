@@ -2514,29 +2514,2009 @@ void wxMaxima::SetupVariables()
   wxString subscriptval;
   switch (autosubscript)
   {
-    case 0:
-      subscriptval = "nil";
-      break;
-    case 1:
-      subscriptval = "t";
-      break;
-    case 2:
-      subscriptval = "'all";
-      break;
+  case 0:
+    subscriptval = "nil";
+    break;
+  case 1:
+    subscriptval = "t";
+    break;
+  case 2:
+    subscriptval = "'all";
+    break;
   }
   SendMaxima(wxT(":lisp-quiet (defparameter $wxsubscripts ") + subscriptval + wxT(")\n"));
-  
+
+  wxString wxMathML_lisp =
+    wxString(";; This is to necessary make file and directory names that contain special characters\n") +
+    wxT(";; work under windows.\n") +
+    wxT("#+sbcl (setf sb-impl::*default-external-format* :UTF-8)\n") +
+    wxT("\n") +
+    wxT("(in-package :maxima)\n") +
+    wxT("\n") +
+    wxT(";; wxMaxima xml format (based on David Drysdale MathML printing)\n") +
+    wxT(";; Andrej Vodopivec,  2004-2014\n") +
+    wxT(";; Gunter Königsmann, 2014-2017\n") +
+    wxT("\n") +
+    wxT(";; MathML-printing\n") +
+    wxT(";; Created by David Drysdale (DMD), December 2002/January 2003\n") +
+    wxT(";;\n") +
+    wxT(";; closely based on the original TeX conversion code in mactex.lisp,\n") +
+    wxT(";; for which the following credits apply:\n") +
+    wxT(";;   (c) copyright 1987, Richard J. Fateman\n") +
+    wxT(";;   small corrections and additions: Andrey Grozin, 2001\n") +
+    wxT(";;   additional additions: Judah Milgram (JM), September 2001\n") +
+    wxT(";;   additional corrections: Barton Willis (BLW), October 2001\n") +
+    wxT(";; Method:\n") +
+    wxT("\n") +
+    wxT(";; Producing wxml from a Maxima internal expression is done by\n") +
+    wxT(";; a reversal of the parsing process.  Fundamentally, a\n") +
+    wxT(";; traversal of the expression tree is produced by the program,\n") +
+    wxT(";; with appropriate substitutions and recognition of the\n") +
+    wxT(";; infix / prefix / postfix / matchfix relations on symbols. Various\n") +
+    wxT(";; changes are made to this so that MathML will like the results.\n") +
+    wxT("\n") +
+    wxT("(declare-top\n") +
+    wxT(" (special lop rop $inchar)\n") +
+    wxT(" (*expr wxxml-lbp wxxml-rbp))\n") +
+    wxT("\n") +
+    wxT("(defvar $wxfilename \"\")\n") +
+    wxT("(defvar $wxdirname \"\")\n") +
+    wxT("(defvar $wxanimate_autoplay nil)\n") +
+    wxT("(defvar wxArtDir \"\")\n") +
+    wxT("(defvar wxUserConfDir \"\")\n") +
+    wxT("(defvar wxHelpDir \"\")\n") +
+    wxT("(defvar wxMaximaLispLocation \"\")\n") +
+    wxT("(defvar $wxplot_size \'((mlist simp) 800 600))\n") +
+    wxT("\n") +
+    wxT("(defun $wxstatusbar (status)\n") +
+    wxT("  (format t \"<statusbar>~a</statusbar>~%\" status))\n") +
+    wxT("\n") +
+    wxT("(defun wx-cd (dir)\n") +
+    wxT("  (when $wxchangedir\n") +
+    wxT("    (let ((dir (cond ((pathnamep dir) dir)\n") +
+    wxT("                     ((stringp dir)\n") +
+    wxT("                      (make-pathname :directory (pathname-directory dir)\n") +
+    wxT("				     :host (pathname-host dir)\n") +
+    wxT("                                     :device (pathname-device dir)))\n") +
+    wxT("                     (t (error \"cd(dir): dir must be a string or pathname.\")))))\n") +
+    wxT("       #+allegro (excl:chdir dir)\n") +
+    wxT("       #+clisp (ext:cd dir)\n") +
+    wxT("       #+cmu (setf (ext:default-directory) dir)\n") +
+    wxT("       #+cormanlisp (ccl:set-current-directory dir)\n") +
+    wxT("       #+gcl (si::chdir dir)\n") +
+    wxT("       #+lispworks (hcl:change-directory dir)\n") +
+    wxT("       #+lucid (lcl:working-directory dir)\n") +
+    wxT("       #+sbcl (sb-posix:chdir dir)\n") +
+    wxT("       #+sbcl (setf *default-pathname-defaults* (sb-ext:native-pathname (format nil \"~A~A\" (sb-posix:getcwd) \"/\")))\n") +
+    wxT("       #+ccl (ccl:cwd dir)\n") +
+    wxT("       #+ecl (si::chdir dir)\n") +
+    wxT("       ;;; Officially gcl supports (si:chdir dir), too. But the version\n") +
+    wxT("       ;;; shipped with debian and ubuntu (at least in Feb 2017) doesn\'t.\n") +
+    wxT("       #+gcl (xchdir dir)\n") +
+    wxT("       #+gcl (setf *default-pathname-defaults* dir)\n") +
+    wxT("\n") +
+    wxT("       (namestring dir))))\n") +
+    wxT("\n") +
+    wxT("#+ccl (setf *print-circle* nil)\n") +
+    wxT("\n") +
+    wxT("\n") +
+    wxT(";;; Without this command encountering unicode characters might cause\n") +
+    wxT(";;; Maxima to stop responding on windows.\n") +
+    wxT("#+(and clisp win32) (setf (stream-external-format *socket-connection*) charset:utf-8)\n") +
+    wxT("#+(and clisp win32) (setf custom:*default-file-encoding* charset:utf-8)\n") +
+    wxT("\n") +
+    wxT(";;; Muffle compiler-notes globally\n") +
+    wxT("#+sbcl (declaim (sb-ext:muffle-conditions sb-ext:compiler-note))\n") +
+    wxT("(defmacro no-warning (form)\n") +
+    wxT("  #+sbcl `(handler-bind\n") +
+    wxT("	     ((style-warning #\'muffle-warning)\n") +
+    wxT("              (sb-ext:compiler-note #\'muffle-warning))\n") +
+    wxT("	   ,form)\n") +
+    wxT("  #+clisp `(let ((custom:*suppress-check-redefinition* t)) ,form)\n") +
+    wxT("  #-(or sbcl clisp) `(progn ,form))\n") +
+    wxT("\n") +
+    wxT("(defun read-wxmaxima-version (v)\n") +
+    wxT("  (let* ((d1 (position #\\. v))\n") +
+    wxT("         (year (subseq v 0 d1))\n") +
+    wxT("         (d2 (position #\\. v :start (1+ d1)))\n") +
+    wxT("         (month (subseq v (1+ d1) d2))\n") +
+    wxT("         (rest (subseq v (1+ d2))))\n") +
+    wxT("    (list \'(mlist simp) (parse-integer year) (parse-integer month) rest)))\n") +
+    wxT("\n") +
+    wxT("($put \'$wxmaxima (read-wxmaxima-version \"")+VERSION+wxT("\") \'$version)\n") +
+    wxT("\n") +
+    wxT("(defun $wxbuild_info ()\n") +
+    wxT("  (let ((year (sixth cl-user:*maxima-build-time*))\n") +
+    wxT("        (month (fifth cl-user:*maxima-build-time*))\n") +
+    wxT("        (day (fourth cl-user:*maxima-build-time*))\n") +
+    wxT("        (hour (third cl-user:*maxima-build-time*))\n") +
+    wxT("        (minute (second cl-user:*maxima-build-time*))\n") +
+    wxT("        (seconds (first cl-user:*maxima-build-time*)))\n") +
+    wxT("    (format t \"wxMaxima version: ~a~%\" \"")+VERSION+wxT("\")\n") +
+    wxT("    (format t \"Maxima version: ~a~%\" *autoconf-version*)\n") +
+    wxT("    (format t \"Maxima build date: ~4,\'0d-~2,\'0d-~2,\'0d ~2,\'0d:~2,\'0d:~2,\'0d~%\"\n") +
+    wxT("            year month day hour minute seconds)\n") +
+    wxT("    (format t \"Host type: ~a~%\" *autoconf-host*)\n") +
+    wxT("    (format t \"System type: ~a ~a ~a~%\" (software-type) (software-version) (machine-type))\n") +
+    wxT("    (format t \"Lisp implementation type: ~a~%\" (lisp-implementation-type))\n") +
+    wxT("    (format t \"Lisp implementation version: ~a~%\" (lisp-implementation-version))\n") +
+    wxT("    (format t \"~%~%wxMaxima\'s idea of the directory layout is:~%Icon dir: ~a~%\" wxArtDir)\n") +
+    wxT("    (format t \"User configuration dir: ~a~%\" wxUserConfDir)\n") +
+    wxT("    (format t \"Help dir: ~a~%\" wxHelpDir)\n") +
+    wxT("    (format t \"Maxima lisp dir: ~a~%\" wxMaximaLispLocation))\n") +
+    wxT("  \"\")\n") +
+    wxT("\n") +
+    wxT("(defmfun $wxbug_report ()\n") +
+    wxT("  (format t \"wxMaxima is a graphical front end for Maxima, which does the mathematics in the background.~%\")\n") +
+    wxT("  (format t \"If you encounter a mathematical problem, it is probably a Maxima bug und should be submitted there.~%\")\n") +
+    wxT("  (format t \"~%The Maxima bug database is available at~%\")\n") +
+    wxT("  (format t \"    https://sourceforge.net/p/maxima/bugs~%\")\n") +
+    wxT("  (format t \"Submit bug reports by following the \'Create Ticket\' link on that page.~%\")\n") +
+    wxT("  (format t \"To report a Maxima bug, you must have a Sourceforge account.~%~%\")\n") +
+    wxT("  (format t \"A problem in the graphical user interface is probably a wxMaxima bug.~%\")\n") +
+    wxT("  (format t \"The wxMaxima bug database is available at~%\")\n") +
+    wxT("  (format t \"    https://github.com/andrejv/wxmaxima/issues?direction=desc&sort=created&state=open~%\")\n") +
+    wxT("  (format t \"Submit bug reports by following the \'New issue\' link on that page.~%~%\")\n") +
+    wxT("  (format t \"Please check before submitting, if your bug was already reported.~%~%\")\n") +
+    wxT("  (format t \"Please include the following information with your bug report:~%\")\n") +
+    wxT("  (format t \"-------------------------------------------------------------~%\")\n") +
+    wxT("  ($wxbuild_info)\n") +
+    wxT("  (format t \"-------------------------------------------------------------~%\"))\n") +
+    wxT("\n") +
+    wxT("(defvar *var-tag* \'(\"<v>\" \"</v>\"))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-get (x p)\n") +
+    wxT("  (if (symbolp x) (get x p)))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml (x l r lop rop)\n") +
+    wxT("  ;; x is the expression of interest; l is the list of strings to its\n") +
+    wxT("  ;; left, r to its right. lop and rop are the operators on the left\n") +
+    wxT("  ;; and right of x in the tree, and will determine if parens must\n") +
+    wxT("  ;; be inserted\n") +
+    wxT("  (setq x (nformat x))\n") +
+    wxT("  (cond ((atom x) (wxxml-atom x l r))\n") +
+    wxT("        ((not (listp (car x)))\n") +
+    wxT("         (wxxml (cons \'(mlist simp) x) l r lop rop))\n") +
+    wxT("        ((or (<= (wxxml-lbp (caar x)) (wxxml-rbp lop))\n") +
+    wxT("             (> (wxxml-lbp rop) (wxxml-rbp (caar x))))\n") +
+    wxT("         (wxxml-paren x l r))\n") +
+    wxT("        ;; special check needed because macsyma notates arrays peculiarly\n") +
+    wxT("        ((member \'array (cdar x) :test #\'eq) (wxxml-array x l r))\n") +
+    wxT("        ;; dispatch for object-oriented wxxml-ifiying\n") +
+    wxT("        ((wxxml-get (caar x) \'wxxml) (funcall (get (caar x) \'wxxml) x l r))\n") +
+    wxT("        ((equal (wxxml-get (caar x) \'dimension) \'dimension-infix)\n") +
+    wxT("         (wxxml-infix x l r))\n") +
+    wxT("	((equal (wxxml-get (caar x) \'dimension) \'dimension-match)\n") +
+    wxT("         (wxxml-matchfix-dim x l r))\n") +
+    wxT("	((equal (wxxml-get (caar x) \'dimension) \'dimension-nary)\n") +
+    wxT("	 (wxxml-nary x l r))\n") +
+    wxT("        ((equal (wxxml-get (caar x) \'dimension) \'dimension-postfix)\n") +
+    wxT("         (wxxml-postfix x l r))\n") +
+    wxT("        ((wxxml-get (caar x) \'defstruct-template)\n") +
+    wxT("         (wxxml-defstruct x l r))\n") +
+    wxT("        (t (wxxml-function x l r))))\n") +
+    wxT("\n") +
+    wxT("(defmacro make-tag (val tag)\n") +
+    wxT("  ``((wxxmltag simp) ,,val ,,tag))\n") +
+    wxT("\n") +
+    wxT("(defun $wxxmltag (val tag)\n") +
+    wxT("  (make-tag ($sconcat val) ($sconcat tag)))\n") +
+    wxT("\n") +
+    wxT("(defun string-substitute (newstring oldchar x &aux matchpos)\n") +
+    wxT("  (setq matchpos (position oldchar x))\n") +
+    wxT("  (if (null matchpos) x\n") +
+    wxT("      (concatenate \'string\n") +
+    wxT("		   (subseq x 0 matchpos)\n") +
+    wxT("		   newstring\n") +
+    wxT("		   (string-substitute newstring oldchar\n") +
+    wxT("				      (subseq x (1+ matchpos))))))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-fix-string (x)\n") +
+    wxT("  (if (stringp x)\n") +
+    wxT("      (let* ((tmp-x (string-substitute \"&amp;\" #\\& x))\n") +
+    wxT("	     (tmp-x (string-substitute \"&lt;\" #\\< tmp-x))\n") +
+    wxT("	     (tmp-x (string-substitute \"&gt;\" #\\> tmp-x))\n") +
+    wxT("	     (tmp-x (string-substitute \"&#13;\" #\\Return tmp-x))\n") +
+    wxT("	     (tmp-x (string-substitute \"&#13;\" #\\Linefeed tmp-x))\n") +
+    wxT("	     (tmp-x (string-substitute \"&#13;\" #\\Newline tmp-x)))\n") +
+    wxT("	tmp-x)\n") +
+    wxT("      x))\n") +
+    wxT("\n") +
+    wxT(";;; First we have the functions which are called directly by wxxml and its\n") +
+    wxT(";;; descendants\n") +
+    wxT("\n") +
+    wxT("(defvar $wxsubscripts nil\n") +
+    wxT("  \"Recognize TeX-style subscripts\")\n") +
+    wxT("\n") +
+    wxT("(defun $wxdeclare_subscript (x &optional (opt t))\n") +
+    wxT("  (unless (listp x)\n") +
+    wxT("    (setq x (list \'(mlist simp) x)))\n") +
+    wxT("  (dolist (s (cdr x))\n") +
+    wxT("    ($put s opt \'$wxxml_subscript))\n") +
+    wxT("  opt)\n") +
+    wxT("\n") +
+    wxT("(defun $wxdeclare_subscripted (x &optional (opt t))\n") +
+    wxT("  (unless (listp x)\n") +
+    wxT("    (setq x (list \'(mlist simp) x)))\n") +
+    wxT("  (dolist (s (cdr x))\n") +
+    wxT("    ($put s opt \'$wxxml_subscripted))\n") +
+    wxT("  opt)\n") +
+    wxT("\n") +
+    wxT("(defun subscriptp (x)\n") +
+    wxT("  (unless (symbolp x)\n") +
+    wxT("    (return-from subscriptp x))\n") +
+    wxT("  (let* ((name (subseq (maybe-invert-string-case (symbol-name x)) 1))\n") +
+    wxT("         (pos (search \"_\" name :from-end t))\n") +
+    wxT("         #-gcl (*readtable* (copy-readtable nil)))\n") +
+    wxT("    #-gcl (setf (readtable-case *readtable*) :invert)\n") +
+    wxT("    (when pos\n") +
+    wxT("      (let* ((sub (subseq name (+ pos 1)))\n") +
+    wxT("             (sub-var (subseq name 0 pos))\n") +
+    wxT("             (sub-var-symb (read-from-string (concatenate \'string \"$\" sub-var)))\n") +
+    wxT("             (sub-symb (read-from-string (concatenate \'string \"$\" sub)))\n") +
+    wxT("             (sub-int (ignore-errors\n") +
+    wxT("                        (parse-integer sub))))\n") +
+    wxT("        (when (and (> (length sub-var) 0)\n") +
+    wxT("                   (or sub-int\n") +
+    wxT("                       (eq $wxsubscripts \'$all)\n") +
+    wxT("                       (= (length sub) 1)\n") +
+    wxT("                       (= (length sub-var) 1)\n") +
+    wxT("                       ($get x \'$wxxml_subscripted)\n") +
+    wxT("                       ($get sub-symb \'$wxxml_subscript)))\n") +
+    wxT("          (format nil  \"<i altCopy=\\\"~{~a~}\\\"><r>~a</r><r>~a</r></i>\"\n") +
+    wxT("                  (mstring x)\n") +
+    wxT("                  (or (get sub-var-symb \'wxxmlword)\n") +
+    wxT("                      (format nil \"<v>~a</v>\" sub-var))\n") +
+    wxT("                  (if sub-int\n") +
+    wxT("                      (format nil \"<n>~a</n>\" sub-int)\n") +
+    wxT("                      (format nil \"<v>~a</v>\" sub))))))))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-atom (x l r &aux tmp-x)\n") +
+    wxT("  (append l\n") +
+    wxT("          (list (cond ((numberp x) (wxxmlnumformat x))\n") +
+    wxT("                      ((and (symbolp x) (get x \'wxxmlword)))\n") +
+    wxT("                      ((and (symbolp x) (get x \'reversealias))\n") +
+    wxT("                       (wxxml-stripdollar (get x \'reversealias)))\n") +
+    wxT("		      ((stringp x)\n") +
+    wxT("		       (setq tmp-x (wxxml-fix-string x))\n") +
+    wxT("		       (if (and (boundp \'$stringdisp) $stringdisp)\n") +
+    wxT("			   (setq tmp-x (format nil \"\\\"~a\\\"\" tmp-x)))\n") +
+    wxT("		       (concatenate \'string \"<st>\" tmp-x \"</st>\"))\n") +
+    wxT("           ((arrayp x)\n") +
+    wxT("            (format nil \"<v>#{Lisp array [~{~a~^,~}]}</v>\"\n") +
+    wxT("		    (array-dimensions x)))\n") +
+    wxT("           ((functionp x)\n") +
+    wxT("	    (format nil \"<v>#{Lisp function}</v>\"))\n") +
+    wxT("           ((streamp x)\n") +
+    wxT("            (format nil \"<v>#{Stream [~A]</v>}\"\n") +
+    wxT("		    (stream-element-type x)))\n") +
+    wxT("           ((member (type-of x) \'(GRAPH DIGRAPH))\n") +
+    wxT("            (format nil \"<v>~a</v>\" x))\n") +
+    wxT("	   ((typep x \'structure-object)\n") +
+    wxT("	    (let ((tmp-string (format nil \"~s\" x)))\n") +
+    wxT("	      (format nil \"<st>~a</st>\" (wxxml-fix-string tmp-string))))\n") +
+    wxT("	   ((hash-table-p x)\n") +
+    wxT("            (format nil \"<v>#{HashTable}</v>\"))\n") +
+    wxT("	   ((and $wxsubscripts (subscriptp x)))\n") +
+    wxT("	   (t (wxxml-stripdollar x))))\n") +
+    wxT("	  r))\n") +
+    wxT("\n") +
+    wxT("(defun wxxmlnumformat (atom)\n") +
+    wxT("  (let (r firstpart exponent)\n") +
+    wxT("    (cond ((integerp atom)\n") +
+    wxT("           (format nil \"<n>~{~c~}</n>\" (exploden atom)))\n") +
+    wxT("	  (t\n") +
+    wxT("	   (setq r (exploden atom))\n") +
+    wxT("	   (setq exponent (member \'e r :test #\'string-equal))\n") +
+    wxT("	   (cond ((null exponent)\n") +
+    wxT("		  (format nil \"<n>~{~c~}</n>\" r))\n") +
+    wxT("		 (t\n") +
+    wxT("		  (setq firstpart\n") +
+    wxT("			(nreverse (cdr (member \'e (reverse r)\n") +
+    wxT("                                               :test #\'string-equal))))\n") +
+    wxT("		  (if (char= (cadr exponent) #\\+)\n") +
+    wxT("		      (setq exponent (cddr exponent))\n") +
+    wxT("		      (setq exponent (cdr exponent)))\n") +
+    wxT("		  (format nil\n") +
+    wxT("			  \"<r><n>~{~c~}</n><h>*</h><e><n>10</n><n>~{~c~}</n></e></r>\"\n") +
+    wxT("			  firstpart exponent)))))))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-stripdollar (sym &aux pname)\n") +
+    wxT("  (or (symbolp sym)\n") +
+    wxT("      (return-from wxxml-stripdollar\n") +
+    wxT("	(wxxml-fix-string (format nil \"~a\" sym))))\n") +
+    wxT("  (setq pname (maybe-invert-string-case (wxxml-fix-string (symbol-name sym))))\n") +
+    wxT("  (setq pname (cond ((and (> (length pname) 0)\n") +
+    wxT("			  (member (elt pname 0) \'(#\\$ #\\&) :test #\'eq))\n") +
+    wxT("		     (subseq pname 1))\n") +
+    wxT("		    ((and (> (length pname) 0)\n") +
+    wxT("			  (equal (elt pname 0) #\\%))\n") +
+    wxT("		     (if $noundisp\n") +
+    wxT("			 (concatenate \'string \"\'\"\n") +
+    wxT("				      (subseq pname 1))\n") +
+    wxT("			 (subseq pname 1)))\n") +
+    wxT("		    ($lispdisp\n") +
+    wxT("		     (concatenate \'string \"?\" pname))\n") +
+    wxT("		    (t pname)))\n") +
+    wxT("  (setq pname (wxxml-fix-string pname))\n") +
+    wxT("  (concatenate \'string (car *var-tag*) pname (cadr *var-tag*)))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-paren (x l r)\n") +
+    wxT("  (wxxml x (append l \'(\"<r><p>\")) (cons \"</p></r>\" r) \'mparen \'mparen))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-array (x l r &aux f)\n") +
+    wxT("  (if (eq \'mqapply (caar x))\n") +
+    wxT("      (setq f (cadr x)\n") +
+    wxT("	    x (cdr x)\n") +
+    wxT("	    l (wxxml f (append l (list \"<i><p>\")) (list \"</p>\")\n") +
+    wxT("		     \'mparen \'mparen))\n") +
+    wxT("      (setq f (caar x)\n") +
+    wxT("	    l (wxxml f (append l \'(\"<i><r>\"))\n") +
+    wxT("		     (list \"</r>\") lop \'mfunction)))\n") +
+    wxT("  (setq r (nconc (wxxml-list (cdr x) (list \"<r>\")\n") +
+    wxT("			     (list \"</r></i>\") \"<v>,</v>\") r))\n") +
+    wxT("  (nconc l r))\n") +
+    wxT("\n") +
+    wxT(";; set up a list , separated by symbols (, * ...)  and then tack on the\n") +
+    wxT(";; ending item (e.g. \"]\" or perhaps \")\"\n") +
+    wxT("(defun wxxml-list (x l r sym)\n") +
+    wxT("  (if (null x) r\n") +
+    wxT("      (do ((nl))\n") +
+    wxT("	  ((null (cdr x))\n") +
+    wxT("	   (setq nl (nconc nl (wxxml (car x)  l r \'mparen \'mparen)))\n") +
+    wxT("	   nl)\n") +
+    wxT("        (setq nl (nconc nl (wxxml (car x)  l (list sym) \'mparen \'mparen))\n") +
+    wxT("              x (cdr x)\n") +
+    wxT("              l nil))))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-defstruct (x l r)\n") +
+    wxT("  (let ((L1 (cdr (get (caar x) \'defstruct-template)))\n") +
+    wxT("        (L2 (cdr x)))\n") +
+    wxT("    (wxxml-function\n") +
+    wxT("     (cons (car x)\n") +
+    wxT("           (mapcar #\'(lambda (e1 e2) (if (eq e1 e2) e1 `((mequal) ,e1 ,e2))) L1 L2))\n") +
+    wxT("     l r)))\n") +
+    wxT("\n") +
+    wxT(";; we could patch this so sin x rather than sin(x), but instead we made\n") +
+    wxT(";; sin a prefix operator\n") +
+    wxT("(defun wxxml-function (x l r)\n") +
+    wxT("  (setq l\n") +
+    wxT("	(let ((*var-tag* \'(\"<fnm>\" \"</fnm>\")))\n") +
+    wxT("	  (wxxml (caar x) (append l \'(\"<fn>\"))\n") +
+    wxT("		 nil \'mparen \'mparen))\n") +
+    wxT("	r (wxxml (cons \'(mprogn) (cdr x)) nil (append \'(\"</fn>\") r)\n") +
+    wxT("		 \'mparen \'mparen))\n") +
+    wxT("  (append l r))\n") +
+    wxT("\n") +
+    wxT(";;; Now we have functions which are called via property lists\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-prefix (x l r)\n") +
+    wxT("  (wxxml (cadr x) (append l (wxxmlsym (caar x))) r (caar x) rop))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-infix (x l r)\n") +
+    wxT("  ;; check for 2 args\n") +
+    wxT("  (if (or (null (cddr x)) (cdddr x)) (wna-err (caar x)))\n") +
+    wxT("  (setq l (wxxml (cadr x) l nil lop (caar x)))\n") +
+    wxT("  (wxxml (caddr x) (append l (wxxmlsym (caar x))) r (caar x) rop))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-postfix (x l r)\n") +
+    wxT("  (wxxml (cadr x) l (append (wxxmlsym (caar x)) r) lop (caar x)))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-nary (x l r)\n") +
+    wxT("  (let* ((op (caar x))\n") +
+    wxT("	 (sym (cond ((member op \'(mtimes wxtimes) :test #\'eq)\n") +
+    wxT("		     (if $stardisp\n") +
+    wxT("			 \"<t>*</t>\"\n") +
+    wxT("			 \"<h>*</h>\"))\n") +
+    wxT("		     ;((wxxmlsym op))\n") +
+    wxT("		     ((eq (get op \'dimension) \'dimension-nary)\n") +
+    wxT("		      (wxxml-dissym-to-string (get op \'dissym)))))\n") +
+    wxT("         (y (cdr x))\n") +
+    wxT("         (ext-lop lop)\n") +
+    wxT("         (ext-rop rop))\n") +
+    wxT("    (cond ((null y)\n") +
+    wxT("	   (wxxml-function x l r)) ; this should not happen\n") +
+    wxT("          ((null (cdr y))\n") +
+    wxT("	   (wxxml-function x l r)) ; this should not happen, too\n") +
+    wxT("          (t (do ((nl) (lop ext-lop op)\n") +
+    wxT("                  (rop op (if (null (cdr y)) ext-rop op)))\n") +
+    wxT("                 ((null (cdr y))\n") +
+    wxT("                  (setq nl (nconc nl (wxxml (car y) l r lop rop))) nl)\n") +
+    wxT("	       (setq nl (nconc nl (wxxml (car y) l (list sym) lop rop))\n") +
+    wxT("		     y (cdr y)\n") +
+    wxT("		     l nil))))))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-nofix (x l r) (wxxml (caar x) l r (caar x) rop))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-matchfix (x l r)\n") +
+    wxT("  (setq l (append l (car (wxxmlsym (caar x))))\n") +
+    wxT("	;; car of wxxmlsym of a matchfix operator is the lead op\n") +
+    wxT("	r (append (cdr (wxxmlsym (caar x))) r)\n") +
+    wxT("	;; cdr is the trailing op\n") +
+    wxT("	x (wxxml-list (cdr x) nil r \"<t>,</t>\"))\n") +
+    wxT("  (append l x))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-matchfix-dim (x l r)\n") +
+    wxT("  (setq l (append l\n") +
+    wxT("		  (list (wxxml-dissym-to-string (car (get (caar x) \'dissym)))))\n") +
+    wxT("	r (append (list (wxxml-dissym-to-string (cdr (get (caar x) \'dissym))))\n") +
+    wxT("		  r)\n") +
+    wxT("	x (wxxml-list (cdr x) nil r \"<t>,</t>\"))\n") +
+    wxT("  (append l x))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-dissym-to-string (lst &aux pname)\n") +
+    wxT("  (setq pname\n") +
+    wxT("	(wxxml-fix-string (format nil \"~{~a~}\" lst)))\n") +
+    wxT("  (concatenate \'string \"<v>\" pname \"</v>\"))\n") +
+    wxT("\n") +
+    wxT("(defun wxxmlsym (x)\n") +
+    wxT("  (or (get x \'wxxmlsym)\n") +
+    wxT("      (get x \'strsym)\n") +
+    wxT("      (and (get x \'dissym)\n") +
+    wxT("	   (list (wxxml-dissym-to-string (get x \'dissym))))\n") +
+    wxT("      (list (stripdollar x))))\n") +
+    wxT("\n") +
+    wxT("(defun wxxmlword (x)\n") +
+    wxT("  (or (get x \'wxxmlword)\n") +
+    wxT("      (stripdollar x)))\n") +
+    wxT("\n") +
+    wxT("(defprop bigfloat wxxml-bigfloat wxxml)\n") +
+    wxT("\n") +
+    wxT(";;(defun mathml-bigfloat (x l r) (declare (ignore l r)) (fpformat x))\n") +
+    wxT("(defun wxxml-bigfloat (x l r)\n") +
+    wxT("  (append l \'(\"<n>\") (fpformat x) \'(\"</n>\") r))\n") +
+    wxT("\n") +
+    wxT("(defprop mprog  \"<fnm>block</fnm>\" wxxmlword)\n") +
+    wxT("(defprop $true  \"<t>true</t>\"  wxxmlword)\n") +
+    wxT("(defprop $false \"<t>false</t>\" wxxmlword)\n") +
+    wxT("\n") +
+    wxT("(defprop mprogn wxxml-matchfix wxxml)\n") +
+    wxT("(defprop mprogn ((\"<r><p>\") \"</p></r>\") wxxmlsym)\n") +
+    wxT("\n") +
+    wxT("(defprop mlist wxxml-matchfix wxxml)\n") +
+    wxT("(defprop mlist ((\"<r><t>[</t>\")\"<t>]</t></r>\") wxxmlsym)\n") +
+    wxT("\n") +
+    wxT("(defprop $set wxxml-matchfix wxxml)\n") +
+    wxT("(defprop $set ((\"<r><t>{</t>\")\"<t>}</t></r>\") wxxmlsym)\n") +
+    wxT("\n") +
+    wxT("(defprop mabs wxxml-matchfix wxxml)\n") +
+    wxT("(defprop mabs ((\"<r><a>\")\"</a></r>\") wxxmlsym)\n") +
+    wxT("\n") +
+    wxT("(defprop $conjugate wxxml-matchfix wxxml)\n") +
+    wxT("(defprop $conjugate ((\"<r><cj>\")\"</cj></r>\") wxxmlsym)\n") +
+    wxT("\n") +
+    wxT("(defprop %conjugate wxxml-matchfix wxxml)\n") +
+    wxT("(defprop %conjugate ((\"<r><cj>\")\"</cj></r>\") wxxmlsym)\n") +
+    wxT("\n") +
+    wxT("(defprop mbox wxxml-mbox wxxml)\n") +
+    wxT("(defprop mlabox wxxml-mbox wxxml)\n") +
+    wxT("\n") +
+    wxT("(defprop mbox 10. wxxml-rbp)\n") +
+    wxT("(defprop mbox 10. wxxml-lbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mlabbox 10. wxxml-rbp)\n") +
+    wxT("(defprop mlabbox 10. wxxml-lbp)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-mbox (x l r)\n") +
+    wxT("  (setq l (wxxml (cadr x) (append l \'(\"<r><hl>\")) nil \'mparen \'mparen)\n") +
+    wxT("        r (append \'(\"</hl></r>\") r))\n") +
+    wxT("  (append l r))\n") +
+    wxT("\n") +
+    wxT("(defprop mqapply wxxml-mqapply wxxml)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-mqapply (x l r)\n") +
+    wxT("  (setq l (wxxml (cadr x) (append l \'(\"<fn>\"))\n") +
+    wxT("                 (list \"<p>\" ) lop \'mfunction)\n") +
+    wxT("	r (wxxml-list (cddr x) nil (cons \"</p></fn>\" r) \"<t>,</t>\"))\n") +
+    wxT("  (append l r))\n") +
+    wxT("\n") +
+    wxT("\n") +
+    wxT("(defprop $zeta \"<g>zeta</g>\" wxxmlword)\n") +
+    wxT("(defprop %zeta \"<g>zeta</g>\" wxxmlword)\n") +
+    wxT("\n") +
+    wxT(";;\n") +
+    wxT(";; Greek characters\n") +
+    wxT(";;\n") +
+    wxT("(defprop $%alpha \"<g>%alpha</g>\" wxxmlword)\n") +
+    wxT("(defprop $alpha \"<g>alpha</g>\" wxxmlword)\n") +
+    wxT("(defprop $%beta \"<g>%beta</g>\" wxxmlword)\n") +
+    wxT("(defprop $beta \"<g>beta</g>\" wxxmlword)\n") +
+    wxT("(defprop $%gamma \"<g>%gamma</g>\" wxxmlword)\n") +
+    wxT("(defprop %gamma \"<g>gamma</g>\" wxxmlword)\n") +
+    wxT("(defprop $%delta \"<g>%delta</g>\" wxxmlword)\n") +
+    wxT("(defprop $delta \"<g>delta</g>\" wxxmlword)\n") +
+    wxT("(defprop $%epsilon \"<g>%epsilon</g>\" wxxmlword)\n") +
+    wxT("(defprop $epsilon \"<g>epsilon</g>\" wxxmlword)\n") +
+    wxT("(defprop $%zeta \"<g>%zeta</g>\" wxxmlword)\n") +
+    wxT("(defprop $%eta \"<g>%eta</g>\" wxxmlword)\n") +
+    wxT("(defprop $eta \"<g>eta</g>\" wxxmlword)\n") +
+    wxT("(defprop $%theta \"<g>%theta</g>\" wxxmlword)\n") +
+    wxT("(defprop $theta \"<g>theta</g>\" wxxmlword)\n") +
+    wxT("(defprop $%iota \"<g>%iota</g>\" wxxmlword)\n") +
+    wxT("(defprop $iota \"<g>iota</g>\" wxxmlword)\n") +
+    wxT("(defprop $%kappa \"<g>%kappa</g>\" wxxmlword)\n") +
+    wxT("(defprop $kappa \"<g>kappa</g>\" wxxmlword)\n") +
+    wxT("(defprop $%lambda \"<g>%lambda</g>\" wxxmlword)\n") +
+    wxT("(defprop $lambda \"<g>lambda</g>\" wxxmlword)\n") +
+    wxT("(defprop $%mu \"<g>%mu</g>\" wxxmlword)\n") +
+    wxT("(defprop $mu \"<g>mu</g>\" wxxmlword)\n") +
+    wxT("(defprop $%nu \"<g>%nu</g>\" wxxmlword)\n") +
+    wxT("(defprop $nu \"<g>nu</g>\" wxxmlword)\n") +
+    wxT("(defprop $%xi \"<g>%xi</g>\" wxxmlword)\n") +
+    wxT("(defprop $xi \"<g>xi</g>\" wxxmlword)\n") +
+    wxT("(defprop $%omicron \"<g>%omicron</g>\" wxxmlword)\n") +
+    wxT("(defprop $omicron \"<g>omicron</g>\" wxxmlword)\n") +
+    wxT("(defprop $%pi \"<s>%pi</s>\" wxxmlword)\n") +
+    wxT("(defprop $pi \"<g>pi</g>\" wxxmlword)\n") +
+    wxT("(defprop $%rho \"<g>%rho</g>\" wxxmlword)\n") +
+    wxT("(defprop $rho \"<g>rho</g>\" wxxmlword)\n") +
+    wxT("(defprop $%sigma \"<g>%sigma</g>\" wxxmlword)\n") +
+    wxT("(defprop $sigma \"<g>sigma</g>\" wxxmlword)\n") +
+    wxT("(defprop $%tau \"<g>%tau</g>\" wxxmlword)\n") +
+    wxT("(defprop $tau \"<g>tau</g>\" wxxmlword)\n") +
+    wxT("(defprop $%upsilon \"<g>%upsilon</g>\" wxxmlword)\n") +
+    wxT("(defprop $upsilon \"<g>upsilon</g>\" wxxmlword)\n") +
+    wxT("(defprop $%phi \"<g>%phi</g>\" wxxmlword)\n") +
+    wxT("(defprop $phi \"<g>phi</g>\" wxxmlword)\n") +
+    wxT("(defprop $%chi \"<g>%chi</g>\" wxxmlword)\n") +
+    wxT("(defprop $chi \"<g>chi</g>\" wxxmlword)\n") +
+    wxT("(defprop $%psi \"<g>%psi</g>\" wxxmlword)\n") +
+    wxT("(defprop $psi \"<g>psi</g>\" wxxmlword)\n") +
+    wxT("(defprop $%omega \"<g>%omega</g>\" wxxmlword)\n") +
+    wxT("(defprop $omega \"<g>omega</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Alpha| \"<g>%Alpha</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Alpha| \"<g>Alpha</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Beta| \"<g>%Beta</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Beta| \"<g>Beta</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Gamma| \"<g>%Gamma</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Gamma| \"<g>Gamma</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Delta| \"<g>%Delta</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Delta| \"<g>Delta</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Epsilon| \"<g>%Epsilon</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Epsilon| \"<g>Epsilon</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Zeta| \"<g>%Zeta</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Zeta| \"<g>Zeta</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Eta| \"<g>%Eta</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Eta| \"<g>Eta</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Theta| \"<g>%Theta</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Theta| \"<g>Theta</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Iota| \"<g>%Iota</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Iota| \"<g>Iota</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Kappa| \"<g>%Kappa</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Kappa| \"<g>Kappa</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Lambda| \"<g>%Lambda</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Lambda| \"<g>Lambda</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Mu| \"<g>%Mu</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Mu| \"<g>Mu</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Nu| \"<g>%Nu</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Nu| \"<g>Nu</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Xi| \"<g>%Xi</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Xi| \"<g>Xi</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Omicron| \"<g>%Omicron</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Omicron| \"<g>Omicron</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Rho| \"<g>%Rho</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Rho| \"<g>Rho</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Sigma| \"<g>%Sigma</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Sigma| \"<g>Sigma</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Tau| \"<g>%Tau</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Tau| \"<g>Tau</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Upsilon| \"<g>%Upsilon</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Upsilon| \"<g>Upsilon</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Phi| \"<g>%Phi</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Phi| \"<g>Phi</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Chi| \"<g>%Chi</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Chi| \"<g>Chi</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Psi| \"<g>%Psi</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Psi| \"<g>Psi</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Omega| \"<g>%Omega</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Omega| \"<g>Omega</g>\" wxxmlword)\n") +
+    wxT("(defprop |$%Pi| \"<g>%Pi</g>\" wxxmlword)\n") +
+    wxT("(defprop |$Pi| \"<g>Pi</g>\" wxxmlword)\n") +
+    wxT("\n") +
+    wxT("(defprop $%i \"<s>%i</s>\" wxxmlword)\n") +
+    wxT("(defprop $%e \"<s>%e</s>\" wxxmlword)\n") +
+    wxT("(defprop $inf \"<s>inf</s>\" wxxmlword)\n") +
+    wxT("(defprop $minf \"<t>-</t><s>inf</s>\" wxxmlword)\n") +
+    wxT("\n") +
+    wxT("(defprop mreturn \"return\" wxxmlword)\n") +
+    wxT("\n") +
+    wxT("(defprop mquote wxxml-prefix wxxml)\n") +
+    wxT("(defprop mquote (\"<t>\'</t>\") wxxmlsym)\n") +
+    wxT("(defprop mquote \"<t>\'</t>\" wxxmlword)\n") +
+    wxT("(defprop mquote 201. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop msetq wxxml-infix wxxml)\n") +
+    wxT("(defprop msetq (\"<t>:</t>\") wxxmlsym)\n") +
+    wxT("(defprop msetq \"<t>:</t>\" wxxmlword)\n") +
+    wxT("(defprop msetq 180. wxxml-rbp)\n") +
+    wxT("(defprop msetq 20. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mset wxxml-infix wxxml)\n") +
+    wxT("(defprop mset (\"<t>::</t>\") wxxmlsym)\n") +
+    wxT("(defprop mset \"<t>::</t>\" wxxmlword)\n") +
+    wxT("(defprop mset 180. wxxml-lbp)\n") +
+    wxT("(defprop mset 20. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mdefine wxxml-infix wxxml)\n") +
+    wxT("(defprop mdefine (\"<t>:=</t>\") wxxmlsym)\n") +
+    wxT("(defprop mdefine \"<t>:=</t>\" wxxmlword)\n") +
+    wxT("(defprop mdefine 180. wxxml-lbp)\n") +
+    wxT("(defprop mdefine 20. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mdefmacro wxxml-infix wxxml)\n") +
+    wxT("(defprop mdefmacro (\"<t>::=</t>\") wxxmlsym)\n") +
+    wxT("(defprop mdefmacro \"<t>::=</t>\" wxxmlword)\n") +
+    wxT("(defprop mdefmacro 180. wxxml-lbp)\n") +
+    wxT("(defprop mdefmacro 20. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop marrow wxxml-infix wxxml)\n") +
+    wxT("(defprop marrow (\"<t>-></t>\") wxxmlsym)\n") +
+    wxT("(defprop marrow \"<t>-></t>\" wxxmlword)\n") +
+    wxT("(defprop marrow 25 wxxml-lbp)\n") +
+    wxT("(defprop marrow 25 wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mfactorial wxxml-postfix wxxml)\n") +
+    wxT("(defprop mfactorial (\"<t>!</t>\") wxxmlsym)\n") +
+    wxT("(defprop mfactorial \"<t>!</t>\" wxxmlword)\n") +
+    wxT("(defprop mfactorial 160. wxxml-lbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mexpt wxxml-mexpt wxxml)\n") +
+    wxT("(defprop mexpt 140. wxxml-lbp)\n") +
+    wxT("(defprop mexpt 139. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop %sum 90. wxxml-rbp)\n") +
+    wxT("(defprop %product 95. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT(";; insert left-angle-brackets for mncexpt. a^<t> is how a^^n looks.\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-mexpt (x l r)\n") +
+    wxT("  (cond ((atom (cadr x))\n") +
+    wxT("	 (wxxml-mexpt-simple x l r))\n") +
+    wxT("	((member \'array (caadr x))\n") +
+    wxT("	 (wxxml-mexpt-array x l r))\n") +
+    wxT("	(t\n") +
+    wxT("	 (wxxml-mexpt-simple x l r))))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-mexpt-array (x l r)\n") +
+    wxT("  (let* ((nc (eq (caar x) \'mncexpt))\n") +
+    wxT("	 f (xarr (cadr x))\n") +
+    wxT("	 (xexp (nformat (caddr x))))\n") +
+    wxT("   ;; the index part\n") +
+    wxT("    (if (eq \'mqapply (caar xarr))\n") +
+    wxT("	(setq f (cadr xarr)\n") +
+    wxT("	      xarr (cdr xarr)\n") +
+    wxT("	      l (wxxml f (append l (list \"<ie><p>\")) (list \"</p>\")\n") +
+    wxT("		       \'mparen \'mparen))\n") +
+    wxT("	(setq f (caar xarr)\n") +
+    wxT("	      l (wxxml f (append l (if nc\n") +
+    wxT("				       (list \"<ie mat=\\\"true\\\"><r>\")\n") +
+    wxT("				       (list \"<ie><r>\")))\n") +
+    wxT("		       (list \"</r>\") lop \'mfunction)))\n") +
+    wxT("    (setq  l (append l (wxxml-list (cdr xarr) (list \"<r>\")\n") +
+    wxT("				   (list \"</r>\") \"<v>,</v>\")))\n") +
+    wxT("   ;; The exponent part\n") +
+    wxT("    (setq r (if (mmminusp xexp)\n") +
+    wxT("                ;; the change in base-line makes parens unnecessary\n") +
+    wxT("                (wxxml (cadr xexp) \'(\"<r><v>-</v>\")\n") +
+    wxT("                       (cons \"</r></ie>\" r) \'mparen \'mparen)\n") +
+    wxT("		(if (and (integerp xexp) (< xexp 10))\n") +
+    wxT("		    (wxxml xexp nil\n") +
+    wxT("			   (cons \"</ie>\" r) \'mparen \'mparen)\n") +
+    wxT("		    (wxxml xexp (list \"<r>\")\n") +
+    wxT("			   (cons \"</r></ie>\" r) \'mparen \'mparen)\n") +
+    wxT("		    )))\n") +
+    wxT("    (append l r)))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-mexpt-simple (x l r)\n") +
+    wxT("  (let((nc (eq (caar x) \'mncexpt)))\n") +
+    wxT("    (setq l (wxxml (cadr x) (append l (if nc\n") +
+    wxT("                                          \'(\"<e mat=\\\"true\\\"><r>\")\n") +
+    wxT("					  \'(\"<e><r>\")))\n") +
+    wxT("                   nil lop (caar x))\n") +
+    wxT("          r (if (mmminusp (setq x (nformat (caddr x))))\n") +
+    wxT("                ;; the change in base-line makes parens unnecessary\n") +
+    wxT("                (wxxml (cadr x) \'(\"</r><r><v>-</v>\")\n") +
+    wxT("                       (cons \"</r></e>\" r) \'mminus \'mminus)\n") +
+    wxT("		(if (and (integerp x) (< x 10))\n") +
+    wxT("		    (wxxml x (list \"</r>\")\n") +
+    wxT("			   (cons \"</e>\" r) \'mparen \'mparen)\n") +
+    wxT("		    (wxxml x (list \"</r><r>\")\n") +
+    wxT("			   (cons \"</r></e>\" r) \'mparen \'mparen)\n") +
+    wxT("		    )))\n") +
+    wxT("    (append l r)))\n") +
+    wxT("\n") +
+    wxT("(defprop mncexpt wxxml-mexpt wxxml)\n") +
+    wxT("\n") +
+    wxT("(defprop mncexpt 135. wxxml-lbp)\n") +
+    wxT("(defprop mncexpt 134. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mnctimes wxxml-nary wxxml)\n") +
+    wxT("(defprop mnctimes \"<t>.</t>\" wxxmlsym)\n") +
+    wxT("(defprop mnctimes \"<t>.</t>\" wxxmlword)\n") +
+    wxT("(defprop mnctimes 110. wxxml-lbp)\n") +
+    wxT("(defprop mnctimes 109. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mtimes wxxml-nary wxxml)\n") +
+    wxT("(defprop mtimes \"<h>*</h>\" wxxmlsym)\n") +
+    wxT("(defprop mtimes \"<t>*</t>\" wxxmlword)\n") +
+    wxT("(defprop mtimes 120. wxxml-lbp)\n") +
+    wxT("(defprop mtimes 120. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop wxtimes wxxml-nary wxxml)\n") +
+    wxT("(defprop wxtimes \"<h>*</h>\" wxxmlsym)\n") +
+    wxT("(defprop wxtimes \"<t>*</t>\" wxxmlword)\n") +
+    wxT("(defprop wxtimes 120. wxxml-lbp)\n") +
+    wxT("(defprop wxtimes 120. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop %sqrt wxxml-sqrt wxxml)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-sqrt (x l r)\n") +
+    wxT("  (wxxml (cadr x) (append l  \'(\"<q>\"))\n") +
+    wxT("         (append \'(\"</q>\") r) \'mparen \'mparen))\n") +
+    wxT("\n") +
+    wxT("(defprop mquotient wxxml-mquotient wxxml)\n") +
+    wxT("(defprop mquotient (\"<t>/</t>\") wxxmlsym)\n") +
+    wxT("(defprop mquotient \"<t>/</t>\" wxxmlword)\n") +
+    wxT("(defprop mquotient 122. wxxml-lbp) ;;dunno about this\n") +
+    wxT("(defprop mquotient 123. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-mquotient (x l r)\n") +
+    wxT("  (if (or (null (cddr x)) (cdddr x)) (wna-err (caar x)))\n") +
+    wxT("  (setq l (wxxml (cadr x) (append l \'(\"<f><r>\")) nil \'mparen \'mparen)\n") +
+    wxT("	r (wxxml (caddr x) (list \"</r><r>\")\n") +
+    wxT("                 (append \'(\"</r></f>\")r) \'mparen \'mparen))\n") +
+    wxT("  (append l r))\n") +
+    wxT("\n") +
+    wxT("(defprop $matrix wxxml-matrix-test wxxml)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-matrix-test (x l r)\n") +
+    wxT("  (if (every #\'$listp (cdr x))\n") +
+    wxT("      (wxxml-matrix x l r)\n") +
+    wxT("      (wxxml-function x l r)))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-matrix(x l r) ;;matrix looks like ((mmatrix)((mlist) a b) ...)\n") +
+    wxT("  (cond ((null (cdr x))\n") +
+    wxT("         (append l `(\"<fn><fnm>matrix</fnm><p/></fn>\") r))\n") +
+    wxT("        ((and (null (cddr x))\n") +
+    wxT("              (null (cdadr x)))\n") +
+    wxT("         (append l `(\"<fn><fnm>matrix</fnm><p><t>[</t><t>]</t></p></fn>\") r))\n") +
+    wxT("        (t\n") +
+    wxT("         (append l (cond\n") +
+    wxT("		     ((find \'inference (car x))\n") +
+    wxT("		      (list \"<tb inference=\\\"true\\\">\"))\n") +
+    wxT("		     ((find \'special (car x))\n") +
+    wxT("		      (list (format nil \"<tb special=\\\"true\\\" rownames=~s colnames=~s>\"\n") +
+    wxT("				    (if (find \'rownames (car x)) \"true\" \"false\")\n") +
+    wxT("				    (if (find \'colnames (car x)) \"true\" \"false\"))))\n") +
+    wxT("		     (t\n") +
+    wxT("		       (list \"<tb>\")))\n") +
+    wxT("                 (mapcan #\'(lambda (y)\n") +
+    wxT("			     (cond ((null (cdr y))\n") +
+    wxT("				    (list \"<mtr><mtd><mspace/></mtd></mtr>\"))\n") +
+    wxT("				   (t\n") +
+    wxT("				    (wxxml-list (cdr y)\n") +
+    wxT("						(list \"<mtr><mtd>\")\n") +
+    wxT("						(list \"</mtd></mtr>\")\n") +
+    wxT("						\"</mtd><mtd>\"))))\n") +
+    wxT("                         (cdr x))\n") +
+    wxT("                 `(\"</tb>\") r))))\n") +
+    wxT("\n") +
+    wxT(";; macsyma sum or prod is over integer range, not  low <= index <= high\n") +
+    wxT(";; wxxml is lots more flexible .. but\n") +
+    wxT("\n") +
+    wxT("(defprop %sum wxxml-sum wxxml)\n") +
+    wxT("(defprop %lsum wxxml-lsum wxxml)\n") +
+    wxT("(defprop %product wxxml-sum wxxml)\n") +
+    wxT("(defprop $sum wxxml-sum wxxml)\n") +
+    wxT("(defprop $lsum wxxml-lsum wxxml)\n") +
+    wxT("(defprop $product wxxml-sum wxxml)\n") +
+    wxT("\n") +
+    wxT(";; easily extended to union, intersect, otherops\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-lsum(x l r)\n") +
+    wxT("  (let ((op \"<sm type=\\\"lsum\\\"><r>\")\n") +
+    wxT("	;; gotta be one of those above\n") +
+    wxT("	(s1 (wxxml (cadr x) nil nil \'mparen rop));; summand\n") +
+    wxT("	(index ;; \"index = lowerlimit\"\n") +
+    wxT("         (wxxml `((min simp) , (caddr x), (cadddr x))\n") +
+    wxT("                nil nil \'mparen \'mparen)))\n") +
+    wxT("    (append l `(,op ,@index\n") +
+    wxT("		\"</r><r><mn/></r><r>\"\n") +
+    wxT("		,@s1 \"</r></sm>\") r)))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-sum(x l r)\n") +
+    wxT("  (let ((op (if (or (eq (caar x) \'%sum)\n") +
+    wxT("		    (eq (caar x) \'$sum))\n") +
+    wxT("		\"<sm><r>\"\n") +
+    wxT("		\"<sm type=\\\"prod\\\"><r>\"))\n") +
+    wxT("	(s1 (wxxml (cadr x) nil nil \'mparen rop));; summand\n") +
+    wxT("	(index ;; \"index = lowerlimit\"\n") +
+    wxT("         (wxxml `((mequal simp) ,(caddr x) ,(cadddr x))\n") +
+    wxT("                nil nil \'mparen \'mparen))\n") +
+    wxT("	(toplim (wxxml (car (cddddr x)) nil nil \'mparen \'mparen)))\n") +
+    wxT("    (append l `( ,op ,@index \"</r><r>\" ,@toplim\n") +
+    wxT("		\"</r><r>\"\n") +
+    wxT("		,@s1 \"</r></sm>\") r)))\n") +
+    wxT("\n") +
+    wxT("(defprop %integrate wxxml-int wxxml)\n") +
+    wxT("(defprop $integrate wxxml-int wxxml)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-int (x l r)\n") +
+    wxT("  (let ((s1 (wxxml (cadr x) nil nil \'mparen \'mparen));;integrand delims / & d\n") +
+    wxT("	(var (wxxml (caddr x) nil nil \'mparen rop))) ;; variable\n") +
+    wxT("    (cond ((= (length x) 3)\n") +
+    wxT("           (append l `(\"<in def=\\\"false\\\"><r>\"\n") +
+    wxT("                       ,@s1\n") +
+    wxT("                       \"</r><r><s>d</s>\"\n") +
+    wxT("                       ,@var\n") +
+    wxT("                       \"</r></in>\") r))\n") +
+    wxT("          (t ;; presumably length 5\n") +
+    wxT("           (let ((low (wxxml (nth 3 x) nil nil \'mparen \'mparen))\n") +
+    wxT("                 ;; 1st item is 0\n") +
+    wxT("                 (hi (wxxml (nth 4 x) nil nil \'mparen \'mparen)))\n") +
+    wxT("             (append l `(\"<in><r>\"\n") +
+    wxT("                         ,@low\n") +
+    wxT("                         \"</r><r>\"\n") +
+    wxT("                         ,@hi\n") +
+    wxT("                         \"</r><r>\"\n") +
+    wxT("                         ,@s1\n") +
+    wxT("                         \"</r><r><s>d</s>\"\n") +
+    wxT("                         ,@var \"</r></in>\") r))))))\n") +
+    wxT("\n") +
+    wxT("(defprop %limit wxxml-limit wxxml)\n") +
+    wxT("\n") +
+    wxT("(defprop mrarr wxxml-infix wxxml)\n") +
+    wxT("(defprop mrarr (\"<t>-></t>\") wxxmlsym)\n") +
+    wxT("(defprop mrarr 80. wxxml-lbp)\n") +
+    wxT("(defprop mrarr 80. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-limit (x l r) ;; ignoring direction, last optional arg to limit\n") +
+    wxT("  (let ((s1 (wxxml (second x) nil nil \'mparen rop));; limitfunction\n") +
+    wxT("	(subfun ;; the thing underneath \"limit\"\n") +
+    wxT("         (wxxml `((mrarr simp) ,(third x)\n") +
+    wxT("                  ,(fourth x)) nil nil \'mparen \'mparen)))\n") +
+    wxT("    (case (fifth x)\n") +
+    wxT("      ($plus\n") +
+    wxT("       (append l `(\"<lm><fnm>lim</fnm><r>\"\n") +
+    wxT("		   ,@subfun \"<v>+</v></r><r>\"\n") +
+    wxT("		   ,@s1 \"</r></lm>\") r))\n") +
+    wxT("      ($minus\n") +
+    wxT("       (append l `(\"<lm><fnm>lim</fnm><r>\"\n") +
+    wxT("		   ,@subfun \"<t>-</t></r><r>\"\n") +
+    wxT("		   ,@s1 \"</r></lm>\") r))\n") +
+    wxT("      (otherwise\n") +
+    wxT("       (append l `(\"<lm><fnm>lim</fnm><r>\"\n") +
+    wxT("		   ,@subfun \"</r><r>\"\n") +
+    wxT("		   ,@s1 \"</r></lm>\") r)))))\n") +
+    wxT("\n") +
+    wxT("(defprop %at wxxml-at wxxml)\n") +
+    wxT(";; e.g.  at(diff(f(x)),x=a)\n") +
+    wxT("(defun wxxml-at (x l r)\n") +
+    wxT("  (let ((s1 (wxxml (cadr x) nil nil lop rop))\n") +
+    wxT("	(sub (wxxml (caddr x) nil nil \'mparen \'mparen)))\n") +
+    wxT("    (append l \'(\"<at><r>\") s1\n") +
+    wxT("            \'(\"</r><r>\") sub \'(\"</r></at>\") r)))\n") +
+    wxT("\n") +
+    wxT(";;binomial coefficients\n") +
+    wxT("\n") +
+    wxT("(defprop %binomial wxxml-choose wxxml)\n") +
+    wxT("\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-choose (x l r)\n") +
+    wxT("  `(,@l\n") +
+    wxT("    \"<p print=\\\"no\\\"><f line=\\\"no\\\"><r>\"\n") +
+    wxT("    ,@(wxxml (cadr x) nil nil \'mparen \'mparen)\n") +
+    wxT("    \"</r><r>\"\n") +
+    wxT("    ,@(wxxml (caddr x) nil nil \'mparen \'mparen)\n") +
+    wxT("    \"</r></f></p>\"\n") +
+    wxT("    ,@r))\n") +
+    wxT("\n") +
+    wxT("\n") +
+    wxT("(defprop rat wxxml-rat wxxml)\n") +
+    wxT("(defprop rat 120. wxxml-lbp)\n") +
+    wxT("(defprop rat 121. wxxml-rbp)\n") +
+    wxT("(defun wxxml-rat(x l r) (wxxml-mquotient x l r))\n") +
+    wxT("\n") +
+    wxT("(defprop mplus wxxml-mplus wxxml)\n") +
+    wxT("(defprop mplus 100. wxxml-lbp)\n") +
+    wxT("(defprop mplus 100. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-mplus (x l r)\n") +
+    wxT("  (cond ((member \'trunc (car x) :test #\'eq)\n") +
+    wxT("	 (setq r (cons \"<v>+</v><t>...</t>\" r))))\n") +
+    wxT("  (cond ((null (cddr x))\n") +
+    wxT("         (if (null (cdr x))\n") +
+    wxT("             (wxxml-function x l r)\n") +
+    wxT("	     (wxxml (cadr x) l r \'mplus rop)))\n") +
+    wxT("        (t (setq l (wxxml (cadr x) l nil lop \'mplus)\n") +
+    wxT("                 x (cddr x))\n") +
+    wxT("           (do ((nl l)  (dissym))\n") +
+    wxT("               ((null (cdr x))\n") +
+    wxT("                (if (mmminusp (car x)) (setq l (cadar x) dissym\n") +
+    wxT("                                             (list \"<v>-</v>\"))\n") +
+    wxT("		    (setq l (car x) dissym (list \"<v>+</v>\")))\n") +
+    wxT("                (setq r (wxxml l dissym r \'mplus rop))\n") +
+    wxT("                (append nl r))\n") +
+    wxT("	     (if (mmminusp (car x)) (setq l (cadar x) dissym\n") +
+    wxT("					  (list \"<v>-</v>\"))\n") +
+    wxT("                 (setq l (car x) dissym (list \"<v>+</v>\")))\n") +
+    wxT("	     (setq nl (append nl (wxxml l dissym nil \'mplus \'mplus))\n") +
+    wxT("		   x (cdr x))))))\n") +
+    wxT("\n") +
+    wxT("(defprop mminus wxxml-prefix wxxml)\n") +
+    wxT("(defprop mminus (\"<v>-</v>\") wxxmlsym)\n") +
+    wxT("(defprop mminus \"<v>-</v>\" wxxmlword)\n") +
+    wxT("(defprop mminus 101. wxxml-rbp)\n") +
+    wxT("(defprop mminus 101. wxxml-lbp)\n") +
+    wxT("\n") +
+    wxT("(defprop $~ wxxml-infix wxxml)\n") +
+    wxT("(defprop $~ (\"<t>~</t>\") wxxmlsym)\n") +
+    wxT("(defprop $~ \"<t>~</t>\" wxxmlword)\n") +
+    wxT("(defprop $~ 134. wxxml-lbp)\n") +
+    wxT("(defprop $~ 133. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop min wxxml-infix wxxml)\n") +
+    wxT("(defprop min (\"<fnm>in</fnm>\") wxxmlsym)\n") +
+    wxT("(defprop min \"<fnm>in</fnm>\" wxxmlword)\n") +
+    wxT("(defprop min 80. wxxml-lbp)\n") +
+    wxT("(defprop min 80. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mequal wxxml-infix wxxml)\n") +
+    wxT("(defprop mequal (\"<v>=</v>\") wxxmlsym)\n") +
+    wxT("(defprop mequal \"<v>=</v>\" wxxmlword)\n") +
+    wxT("(defprop mequal 80. wxxml-lbp)\n") +
+    wxT("(defprop mequal 80. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mnotequal wxxml-infix wxxml)\n") +
+    wxT("(defprop mnotequal (\"<t>#</t>\") wxxmlsym)\n") +
+    wxT("(defprop mnotequal 80. wxxml-lbp)\n") +
+    wxT("(defprop mnotequal 80. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mgreaterp wxxml-infix wxxml)\n") +
+    wxT("(defprop mgreaterp (\"<t>&gt;</t>\") wxxmlsym)\n") +
+    wxT("(defprop mgreaterp \"<t>&gt;</t>\" wxxmlword)\n") +
+    wxT("(defprop mgreaterp 80. wxxml-lbp)\n") +
+    wxT("(defprop mgreaterp 80. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mgeqp wxxml-infix wxxml)\n") +
+    wxT("(defprop mgeqp (\"<t>&gt;=</t>\") wxxmlsym)\n") +
+    wxT("(defprop mgeqp \"<t>&gt;=</t>\" wxxmlword)\n") +
+    wxT("(defprop mgeqp 80. wxxml-lbp)\n") +
+    wxT("(defprop mgeqp 80. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mlessp wxxml-infix wxxml)\n") +
+    wxT("(defprop mlessp (\"<t>&lt;</t>\") wxxmlsym)\n") +
+    wxT("(defprop mlessp \"<t>&lt;</t>\" wxxmlword)\n") +
+    wxT("(defprop mlessp 80. wxxml-lbp)\n") +
+    wxT("(defprop mlessp 80. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mleqp wxxml-infix wxxml)\n") +
+    wxT("(defprop mleqp (\"<t>&lt;=</t>\") wxxmlsym)\n") +
+    wxT("(defprop mleqp \"<t>&lt;=</t>\" wxxmlword)\n") +
+    wxT("(defprop mleqp 80. wxxml-lbp)\n") +
+    wxT("(defprop mleqp 80. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mnot wxxml-prefix wxxml)\n") +
+    wxT("(defprop mnot (\"<fnm altCopy=\\\"not \\\">not</fnm>\") wxxmlsym)\n") +
+    wxT("(defprop mnot \"<fnm>not</fnm>\" wxxmlword)\n") +
+    wxT("(defprop mnot 70. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mand wxxml-nary wxxml)\n") +
+    wxT("(defprop mand \"<mspace/><fnm>and</fnm><mspace/>\" wxxmlsym)\n") +
+    wxT("(defprop mand \"<fnm>and</fnm>\" wxxmlword)\n") +
+    wxT("(defprop mand 60. wxxml-lbp)\n") +
+    wxT("(defprop mand 60. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop mor wxxml-nary wxxml)\n") +
+    wxT("(defprop mor \"<mspace/><fnm>or</fnm><mspace/>\" wxxmlsym)\n") +
+    wxT("(defprop mor \"<fnm>or</fnm>\" wxxmlword)\n") +
+    wxT("(defprop mor 50. wxxml-lbp)\n") +
+    wxT("(defprop mor 50. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("\n") +
+    wxT("(defprop mcond wxxml-mcond wxxml)\n") +
+    wxT("(defprop mcond 25. wxxml-lbp)\n") +
+    wxT("(defprop mcond 25. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop %derivative wxxml-derivative wxxml)\n") +
+    wxT("(defprop %derivative 120. wxxml-lbp)\n") +
+    wxT("(defprop %derivative 119. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defprop $diff wxxml-derivative wxxml)\n") +
+    wxT("(defprop $diff 120. wxxml-lbp)\n") +
+    wxT("(defprop $diff 119. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-derivative (x l r)\n") +
+    wxT("  (if (and $derivabbrev\n") +
+    wxT("           (every #\'integerp (odds (cddr x) 0))\n") +
+    wxT("           (every #\'atom (odds (cddr x) 1)))\n") +
+    wxT("      (append l (wxxml-d-abbrev x) r)\n") +
+    wxT("      (wxxml (wxxml-d x) (append l \'(\"<d>\"))\n") +
+    wxT("	     (append \'(\"</d>\") r) \'mparen \'mparen)))\n") +
+    wxT("\n") +
+    wxT("(defun $derivabbrev (a)\n") +
+    wxT("  (if a\n") +
+    wxT("      (progn\n") +
+    wxT("	(defprop %derivative 130. wxxml-lbp)\n") +
+    wxT("	(defprop %derivative 129. wxxml-rbp)\n") +
+    wxT("	(setq $derivabbrev t))\n") +
+    wxT("      (progn\n") +
+    wxT("	(defprop %derivative 120. wxxml-lbp)\n") +
+    wxT("	(defprop %derivative 119. wxxml-rbp)\n") +
+    wxT("	(setq $derivabbrev nil))))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-d-abbrev-subscript (l_vars l_ords &aux var_xml)\n") +
+    wxT("  (let ((sub ()))\n") +
+    wxT("    (loop while l_vars do\n") +
+    wxT("         (setq var_xml (car (wxxml (car l_vars) nil nil \'mparen \'mparen)))\n") +
+    wxT("         (loop for i from 1 to (car l_ords) do\n") +
+    wxT("              (setq sub (cons var_xml sub)))\n") +
+    wxT("         (setq l_vars (cdr l_vars)\n") +
+    wxT("               l_ords (cdr l_ords)))\n") +
+    wxT("    (reverse sub)))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-d-abbrev (x)\n") +
+    wxT("  (let*\n") +
+    wxT("      ((difflist (cddr x))\n") +
+    wxT("       (ords (odds  difflist 0))\n") +
+    wxT("       (ords (cond ((null ords) \'(1))\n") +
+    wxT("		   (t ords)))\n") +
+    wxT("       (vars (odds difflist 1))\n") +
+    wxT("       (fun (wxxml (cadr x) nil nil \'mparen \'mparen)))\n") +
+    wxT("    (append \'(\"<i d=\\\"1\\\"><r>\") fun \'(\"</r>\")\n") +
+    wxT("	    \'(\"<r>\") (wxxml-d-abbrev-subscript vars ords) \'(\"</r></i>\"))))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-d (x)\n") +
+    wxT("  ;; format the macsyma derivative form so it looks\n") +
+    wxT("  ;; sort of like a quotient times the deriva-dand.\n") +
+    wxT("  (let*\n") +
+    wxT("      (($simp t)\n") +
+    wxT("       (arg (cadr x)) ;; the function being differentiated\n") +
+    wxT("       (difflist (cddr x)) ;; list of derivs e.g. (x 1 y 2)\n") +
+    wxT("       (ords (odds difflist 0)) ;; e.g. (1 2)\n") +
+    wxT("       (ords (cond ((null ords) \'(1))\n") +
+    wxT("                   (t ords)))\n") +
+    wxT("       (vars (odds difflist 1)) ;; e.g. (x y)\n") +
+    wxT("       (dsym \'((wxxmltag simp) \"d\" \"s\"))\n") +
+    wxT("       (numer `((mexpt) ,dsym ((mplus) ,@ords))) ; d^n numerator\n") +
+    wxT("       (denom (cons \'(mtimes)\n") +
+    wxT("                    (mapcan #\'(lambda(b e)\n") +
+    wxT("                                `(,dsym ,(simplifya `((mexpt) ,b ,e) nil)))\n") +
+    wxT("                            vars ords))))\n") +
+    wxT("    `((wxtimes)\n") +
+    wxT("      ((mquotient) ,(simplifya numer nil) ,denom)\n") +
+    wxT("      ,arg)))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-mcond (x l r)\n") +
+    wxT("  (let ((res ()))\n") +
+    wxT("    (setq res (wxxml (cadr x) \'(\"<fnm>if</fnm><mspace/>\")\n") +
+    wxT("		     \'(\"<mspace/><fnm>then</fnm><mspace/>\") \'mparen \'mparen))\n") +
+    wxT("    (setq res (append res (wxxml (caddr x) nil\n") +
+    wxT("				 \'(\"<mspace/>\") \'mparen \'mparen)))\n") +
+    wxT("    (let ((args (cdddr x)))\n") +
+    wxT("      (loop while (>= (length args) 2) do\n") +
+    wxT("	    (cond\n") +
+    wxT("	      ((and (= (length args) 2) (eql (car args) t))\n") +
+    wxT("	       (unless (or (eql (cadr args) \'$false) (null (cadr args)))\n") +
+    wxT("		 (setq res (wxxml (cadr args)\n") +
+    wxT("				  (append res \'(\"<fnm>else</fnm><mspace/>\"))\n") +
+    wxT("				  nil \'mparen \'mparen))))\n") +
+    wxT("	      (t\n") +
+    wxT("	       (setq res (wxxml (car args)\n") +
+    wxT("				(append res \'(\"<fnm>elseif</fnm><mspace/>\"))\n") +
+    wxT("				(wxxml (cadr args)\n") +
+    wxT("				       \'(\"<mspace/><fnm>then</fnm><mspace/>\")\n") +
+    wxT("				       \'(\"<mspace/>\") \'mparen \'mparen)\n") +
+    wxT("				\'mparen \'mparen))))\n") +
+    wxT("	    (setq args (cddr args)))\n") +
+    wxT("      (append l res r))))\n") +
+    wxT("\n") +
+    wxT("(defprop mdo wxxml-mdo wxxml)\n") +
+    wxT("(defprop mdo 30. wxxml-lbp)\n") +
+    wxT("(defprop mdo 30. wxxml-rbp)\n") +
+    wxT("(defprop mdoin wxxml-mdoin wxxml)\n") +
+    wxT("(defprop mdoin 30. wxxml-rbp)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-lbp (x)\n") +
+    wxT("  (cond ((wxxml-get x \'wxxml-lbp))\n") +
+    wxT("        (t(lbp x))))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-rbp (x)\n") +
+    wxT("  (cond ((wxxml-get x \'wxxml-rbp))\n") +
+    wxT("        (t(lbp x))))\n") +
+    wxT("\n") +
+    wxT(";; these aren\'t quite right\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-mdo (x l r)\n") +
+    wxT("  (wxxml-list (wxxmlmdo x) l r \"<mspace/>\"))\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-mdoin (x l r)\n") +
+    wxT("  (wxxml-list (wxxmlmdoin x) l r \"<mspace/>\"))\n") +
+    wxT("\n") +
+    wxT("(defun wxxmlmdo (x)\n") +
+    wxT("  (nconc (cond ((second x) (list (make-tag \"for\" \"fnm\") (second x))))\n") +
+    wxT("	 (cond ((equal 1 (third x)) nil)\n") +
+    wxT("	       ((third x)  (list (make-tag \"from\" \"fnm\") (third x))))\n") +
+    wxT("	 (cond ((equal 1 (fourth x)) nil)\n") +
+    wxT("	       ((fourth x)\n") +
+    wxT("		(list (make-tag \"step\" \"fnm\")  (fourth x)))\n") +
+    wxT("	       ((fifth x)\n") +
+    wxT("		(list (make-tag \"next\" \"fnm\") (fifth x))))\n") +
+    wxT("	 (cond ((sixth x)\n") +
+    wxT("		(list (make-tag \"thru\" \"fnm\") (sixth x))))\n") +
+    wxT("	 (cond ((null (seventh x)) nil)\n") +
+    wxT("	       ((eq \'mnot (caar (seventh x)))\n") +
+    wxT("		(list (make-tag \"while\" \"fnm\") (cadr (seventh x))))\n") +
+    wxT("	       (t (list (make-tag \"unless\" \"fnm\") (seventh x))))\n") +
+    wxT("	 (list (make-tag \"do\" \"fnm\") (eighth x))))\n") +
+    wxT("\n") +
+    wxT("(defun wxxmlmdoin (x)\n") +
+    wxT("  (nconc (list (make-tag \"for\" \"fnm\") (second x)\n") +
+    wxT("	       (make-tag \"in\" \"fnm\") (third x))\n") +
+    wxT("	 (cond ((sixth x)\n") +
+    wxT("		(list (make-tag \"thru\" \"fnm\") (sixth x))))\n") +
+    wxT("	 (cond ((null (seventh x)) nil)\n") +
+    wxT("	       ((eq \'mnot (caar (seventh x)))\n") +
+    wxT("		(list (make-tag \"while\" \"fnm\") (cadr (seventh x))))\n") +
+    wxT("	       (t (list (make-tag \"unless\" \"fnm\") (seventh x))))\n") +
+    wxT("	 (list (make-tag \"do\" \"fnm\") (eighth x))))\n") +
+    wxT("\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-matchfix-np (x l r)\n") +
+    wxT("  (setq l (append l (car (wxxmlsym (caar x))))\n") +
+    wxT("	;; car of wxxmlsym of a matchfix operator is the lead op\n") +
+    wxT("	r (append (cdr (wxxmlsym (caar x))) r)\n") +
+    wxT("	;; cdr is the trailing op\n") +
+    wxT("	x (wxxml-list (cdr x) nil r \"\"))\n") +
+    wxT("  (append l x))\n") +
+    wxT("\n") +
+    wxT("(defprop text-string wxxml-matchfix-np wxxml)\n") +
+    wxT("(defprop text-string ((\"<t>\")\"</t>\") wxxmlsym)\n") +
+    wxT("\n") +
+    wxT("(defprop mtext wxxml-matchfix-np wxxml)\n") +
+    wxT("(defprop mtext ((\"\")\"\") wxxmlsym)\n") +
+    wxT("\n") +
+    wxT("(defvar *wxxml-mratp* nil)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-mlable (x l r)\n") +
+    wxT("  (wxxml (caddr x)\n") +
+    wxT("         (append l\n") +
+    wxT("                 (if (cadr x)\n") +
+    wxT("                     (list\n") +
+    wxT("		      (format nil \"<lbl>(~A)~A </lbl>\"\n") +
+    wxT("			      (stripdollar (maybe-invert-string-case (symbol-name (cadr x))))\n") +
+    wxT("                              *wxxml-mratp*))\n") +
+    wxT("		     nil))\n") +
+    wxT("         r \'mparen \'mparen))\n") +
+    wxT("\n") +
+    wxT("(defprop mlable wxxml-mlable wxxml)\n") +
+    wxT("(defprop mlabel wxxml-mlable wxxml)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-spaceout (x l r)\n") +
+    wxT("  (append l (list \" \" (make-string (cadr x) :initial-element #\\.) \"\") r))\n") +
+    wxT("\n") +
+    wxT("(defprop spaceout wxxml-spaceout wxxml)\n") +
+    wxT("\n") +
+    wxT("(defun mydispla (x)\n") +
+    wxT("  (let ((*print-circle* nil)\n") +
+    wxT("        (*wxxml-mratp* (format nil \"~{~a~}\" (cdr (checkrat x)))))\n") +
+    wxT("    (mapc #\'princ\n") +
+    wxT("          (wxxml x \'(\"<mth>\") \'(\"</mth>\") \'mparen \'mparen))))\n") +
+    wxT("\n") +
+    wxT("(setf *alt-display2d* \'mydispla)\n") +
+    wxT("\n") +
+    wxT("(defun $set_display (tp)\n") +
+    wxT("  (cond\n") +
+    wxT("    ((eq tp \'$none)\n") +
+    wxT("     (setq $display2d nil))\n") +
+    wxT("    ((eq tp \'$ascii)\n") +
+    wxT("     (setq $display2d t)\n") +
+    wxT("     (setf *alt-display2d* nil))\n") +
+    wxT("    ((eq tp \'$xml)\n") +
+    wxT("     (setq $display2d t)\n") +
+    wxT("     (setf *alt-display2d* \'mydispla))\n") +
+    wxT("    (t\n") +
+    wxT("     (format t \"Unknown display type\")\n") +
+    wxT("     (setq tp \'$unknown)))\n") +
+    wxT("  tp)\n") +
+    wxT("\n") +
+    wxT(";;\n") +
+    wxT(";; inference_result from the stats package\n") +
+    wxT(";;\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-inference (x l r)\n") +
+    wxT("  (let ((name (cadr x))\n") +
+    wxT("	(values (caddr x))\n") +
+    wxT("	(dis (cadddr x))\n") +
+    wxT("	(m ()))\n") +
+    wxT("    (labels\n") +
+    wxT("	((build-eq (e)\n") +
+    wxT("	   `((mequal simp) ,(cadr e) ,(caddr e))))\n") +
+    wxT("      (dolist (i (cdr dis))\n") +
+    wxT("	(setq m (append m `(((mlist simp) ,(build-eq (nth i values)))))))\n") +
+    wxT("      (setq m (cons `((mlist simp) ,name) m))\n") +
+    wxT("      (setq m (cons \'($matrix simp inference) m))\n") +
+    wxT("      (wxxml m l r \'mparen \'mparen))))\n") +
+    wxT("\n") +
+    wxT("(defprop $inference_result wxxml-inference wxxml)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-amatrix (x l r)\n") +
+    wxT("  (let* ((nr ($@-function x \'$nr))\n") +
+    wxT("	 (nc ($@-function x \'$nc))\n") +
+    wxT("	 (M (simplifya ($genmatrix\n") +
+    wxT("			`((lambda) ((mlist) i j) (mfuncall \'$get_element ,x i j))\n") +
+    wxT("			nr nc)\n") +
+    wxT("		       t)))\n") +
+    wxT("    (wxxml-matrix M l r)))\n") +
+    wxT("\n") +
+    wxT("(defprop $amatrix wxxml-amatrix wxxml)\n") +
+    wxT("\n") +
+    wxT(";;\n") +
+    wxT(";; orthopoly functions\n") +
+    wxT(";;\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-pochhammer (x l r)\n") +
+    wxT("  (let ((n (cadr x))\n") +
+    wxT("	(k (caddr x)))\n") +
+    wxT("    (append l\n") +
+    wxT("	    (list (format nil \"<i altCopy=\\\"~{~a~}\\\"><p>\" (mstring x)))\n") +
+    wxT("	    (wxxml n nil nil \'mparen \'mparen)\n") +
+    wxT("	    (list \"</p><r>\")\n") +
+    wxT("	    (wxxml k nil nil \'mparen \'mparen)\n") +
+    wxT("	    (list \"</r></i>\")\n") +
+    wxT("	    r)))\n") +
+    wxT("\n") +
+    wxT("(defprop $pochhammer wxxml-pochhammer wxxml)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-orthopoly (x l r)\n") +
+    wxT("  (let* ((fun-name (caar x))\n") +
+    wxT("	 (disp-name (get fun-name \'wxxml-orthopoly-disp))\n") +
+    wxT("	 (args (cdr x)))\n") +
+    wxT("    (append l\n") +
+    wxT("	    (list (format nil \"<fn altCopy=\\\"~{~a~}\\\">\" (mstring x)))\n") +
+    wxT("	    (if (nth 2 disp-name)\n") +
+    wxT("		(list (format nil \"<ie><fnm>~a</fnm><r>\" (car disp-name)))\n") +
+    wxT("		(list (format nil \"<i><fnm>~a</fnm><r>\" (car disp-name))))\n") +
+    wxT("	    (wxxml (nth (nth 1 disp-name) args) nil nil \'mparen \'mparen)\n") +
+    wxT("	    (when (nth 2 disp-name)\n") +
+    wxT("	      (append (list \"</r><r>\")\n") +
+    wxT("		      (when (nth 3 disp-name) (list \"<p>\"))\n") +
+    wxT("		      (wxxml-list (or (nth 5 disp-name)\n") +
+    wxT("				      (mapcar (lambda (i) (nth i args)) (nth 2 disp-name)))\n") +
+    wxT("				  nil nil \",\")\n") +
+    wxT("		      (when (nth 3 disp-name) (list \"</p>\"))\n") +
+    wxT("		      (list \"</r>\")))\n") +
+    wxT("	    (if (nth 2 disp-name)\n") +
+    wxT("		(list \"</ie>\")\n") +
+    wxT("		(list \"</r></i>\"))\n") +
+    wxT("	    (list \"<p>\")\n") +
+    wxT("	    (wxxml-list (mapcar (lambda (i) (nth i args)) (nth 4 disp-name)) nil nil \",\")\n") +
+    wxT("	    (list \"</p></fn>\")\n") +
+    wxT("	    r)))\n") +
+    wxT("\n") +
+    wxT("(dolist (ortho-pair\n") +
+    wxT("	  \'(($laguerre \"L\" 0 nil nil (1))\n") +
+    wxT("	    (%laguerre \"L\" 0 nil nil (1))\n") +
+    wxT("	    ($legendre_p \"P\" 0 nil nil (1))\n") +
+    wxT("	    (%legendre_p \"P\" 0 nil nil (1))\n") +
+    wxT("	    ($legendre_q \"Q\" 0 nil nil (1))\n") +
+    wxT("	    (%legendre_q \"Q\" 0 nil nil (1))\n") +
+    wxT("	    ($chebyshev_t \"T\" 0 nil nil (1))\n") +
+    wxT("	    (%chebyshev_t \"T\" 0 nil nil (1))\n") +
+    wxT("	    ($chebyshev_u \"U\" 0 nil nil (1))\n") +
+    wxT("	    (%chebyshev_u \"U\" 0 nil nil (1))\n") +
+    wxT("	    ($hermite \"H\" 0 nil nil (1))\n") +
+    wxT("	    (%hermite \"H\" 0 nil nil (1))\n") +
+    wxT("	    ($spherical_bessel_j \"J\" 0 nil nil (1))\n") +
+    wxT("	    (%spherical_bessel_j \"J\" 0 nil nil (1))\n") +
+    wxT("	    ($spherical_bessel_y \"Y\" 0 nil nil (1))\n") +
+    wxT("	    (%spherical_bessel_y \"Y\" 0 nil nil (1))\n") +
+    wxT("	    ($assoc_legendre_p \"P\" 0 (1) nil (2))\n") +
+    wxT("	    (%assoc_legendre_p \"P\" 0 (1) nil (2))\n") +
+    wxT("	    ($assoc_legendre_q \"Q\" 0 (1) nil (2))\n") +
+    wxT("	    (%assoc_legendre_q \"Q\" 0 (1) nil (2))\n") +
+    wxT("	    ($jacobi_p \"P\" 0 (1 2) t (3))\n") +
+    wxT("	    (%jacobi_p \"P\" 0 (1 2) t (3))\n") +
+    wxT("	    ($gen_laguerre \"L\" 0 (1) t (2))\n") +
+    wxT("	    (%gen_laguerre \"L\" 0 (1) t (2))\n") +
+    wxT("	    ($spherical_harmonic \"Y\" 0 (1) nil (2 3))\n") +
+    wxT("	    (%spherical_harmonic \"Y\" 0 (1) nil (2 3))\n") +
+    wxT("	    ($ultraspherical \"C\" 0 (1) t (2))\n") +
+    wxT("	    (%ultraspherical \"C\" 0 (1) t (2))\n") +
+    wxT("	    ($spherical_hankel1 \"H\" 0 t t (1) (1))\n") +
+    wxT("	    (%spherical_hankel1 \"H\" 0 t t (1) (1))\n") +
+    wxT("	    ($spherical_hankel2 \"H\" 0 t t (1) (2))\n") +
+    wxT("	    (%spherical_hankel2 \"H\" 0 t t (1) (2))))\n") +
+    wxT("  (setf (get (car ortho-pair) \'wxxml) \'wxxml-orthopoly)\n") +
+    wxT("  (setf (get (car ortho-pair) \'wxxml-orthopoly-disp) (cdr ortho-pair)))\n") +
+    wxT("\n") +
+    wxT(";;;\n") +
+    wxT(";;; This is the display support only - copy/paste will not work\n") +
+    wxT(";;;\n") +
+    wxT("\n") +
+    wxT("(defmvar $pdiff_uses_prime_for_derivatives nil)\n") +
+    wxT("(defmvar $pdiff_prime_limit 3)\n") +
+    wxT("(defmvar $pdiff_uses_named_subscripts_for_derivatives nil)\n") +
+    wxT("(defmvar $pdiff_diff_var_names (list \'(mlist) \'|$x| \'|$y| \'|$z|))\n") +
+    wxT("\n") +
+    wxT("(setf (get \'%pderivop \'wxxml) \'wxxml-pderivop)\n") +
+    wxT("(setf (get \'$pderivop \'wxxml) \'wxxml-pderivop)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-pderivop (x l r)\n") +
+    wxT("  (cond ((and $pdiff_uses_prime_for_derivatives (eq 3 (length x)))\n") +
+    wxT("	 (let* ((n (car (last x)))\n") +
+    wxT("		(p))\n") +
+    wxT("\n") +
+    wxT("	   (cond ((<= n $pdiff_prime_limit)\n") +
+    wxT("		  (setq p (make-list n :initial-element \"\'\")))\n") +
+    wxT("		 (t\n") +
+    wxT("		  (setq p (list \"(\" n \")\"))))\n") +
+    wxT("	   (append (append l \'(\"<r>\"))\n") +
+    wxT("		   (let ((*var-tag* (list \"<fnm>\" \"</fnm>\"))) (wxxml (cadr x) nil nil lop rop))\n") +
+    wxT("		   p\n") +
+    wxT("		   (list \"</r>\")  r)))\n") +
+    wxT("\n") +
+    wxT("	((and $pdiff_uses_named_subscripts_for_derivatives\n") +
+    wxT("	      (< (apply #\'+ (cddr x)) $pdiff_prime_limit))\n") +
+    wxT("	 (let ((n (cddr x))\n") +
+    wxT("	       (v (mapcar #\'stripdollar (cdr $pdiff_diff_var_names)))\n") +
+    wxT("	       (p))\n") +
+    wxT("	   (cond ((> (length n) (length v))\n") +
+    wxT("		  (merror \"Not enough elements in pdiff_diff_var_names to display the expression\")))\n") +
+    wxT("	   (dotimes (i (length n))\n") +
+    wxT("	     (setq p (append p (make-list (nth i n)\n") +
+    wxT("                                          :initial-element (nth i v)))))\n") +
+    wxT("	   (append (append l \'(\"<i><r>\"))\n") +
+    wxT("                   (wxxml (cadr x) nil nil lop rop)\n") +
+    wxT("                   (list \"</r><r>\") p (list \"</r></i>\") r)))\n") +
+    wxT("	(t\n") +
+    wxT("	 (append (append l \'(\"<i><r>\"))\n") +
+    wxT("                 (wxxml (cadr x) nil nil lop rop)\n") +
+    wxT("                 (list \"</r><r>(\")\n") +
+    wxT("		 (wxxml-list (cddr x) nil nil \",\")\n") +
+    wxT("                 (list \")</r></i>\") r))))\n") +
+    wxT("\n") +
+    wxT(";;\n") +
+    wxT(";; Plotting support\n") +
+    wxT(";;\n") +
+    wxT("\n") +
+    wxT("(defprop wxxmltag wxxml-tag wxxml)\n") +
+    wxT("\n") +
+    wxT("(defun wxxml-tag (x l r)\n") +
+    wxT("  (let ((name (cadr x))\n") +
+    wxT("	(tag (caddr x))\n") +
+    wxT("	(prop (cadddr x)))\n") +
+    wxT("    (if prop\n") +
+    wxT("	(append l (list (format nil \"<~a ~a>~a</~a>\" tag prop name tag)) r)\n") +
+    wxT("	(append l (list (format nil \"<~a>~a</~a>\" tag name tag)) r))))\n") +
+    wxT("\n") +
+    wxT("\n") +
+    wxT("(defmvar $wxplot_old_gnuplot nil)\n") +
+    wxT("\n") +
+    wxT("(defvar *image-counter* 0)\n") +
+    wxT("(defvar $gnuplot_file_name)\n") +
+    wxT("(defvar $data_file_name)\n") +
+    wxT("(setq $gnuplot_file_name (format nil \"maxout_~d.gnuplot\" (getpid)))\n") +
+    wxT("(setq $data_file_name (format nil \"maxout_~d.dat\" (getpid)))\n") +
+    wxT("\n") +
+    wxT("(defun wxplot-filename (&optional (suff t))\n") +
+    wxT("  (incf *image-counter*)\n") +
+    wxT("  (plot-temp-file (if suff\n") +
+    wxT("		      (format nil \"maxout_~d_~d.png\" (getpid) *image-counter*)\n") +
+    wxT("		      (format nil \"maxout_~d_~d\" (getpid) *image-counter*))))\n") +
+    wxT("\n") +
+    wxT(";; The \"solid\" has to be changed to \"dashed\" as soon as plot() starts\n") +
+    wxT(";; supporting other line styles than \"solid\" or \"dots\".\n") +
+    wxT("(defun $wxplot_preamble ()\n") +
+    wxT("  (let ((frmt\n") +
+    wxT("         (cond\n") +
+    wxT("           ($wxplot_old_gnuplot \"set terminal png picsize ~d ~d; set zeroaxis;\")\n") +
+    wxT("           ($wxplot_pngcairo \"set terminal pngcairo solid background \\\"white\\\" enhanced font \\\"arial,10\\\" fontscale 1.0 size ~d,~d; set zeroaxis;\")\n") +
+    wxT("           (t \"set terminal png size ~d,~d; set zeroaxis;\"))))\n") +
+    wxT("    (format nil frmt\n") +
+    wxT("	    ($first $wxplot_size)\n") +
+    wxT("	    ($second $wxplot_size))))\n") +
+    wxT("\n") +
+    wxT("(defun $int_range (lo &optional hi (st 1))\n") +
+    wxT("  (unless (integerp lo)\n") +
+    wxT("    ($error \"int_range: first argument is not an integer.\"))\n") +
+    wxT("  (unless (or (null hi) (integerp hi))\n") +
+    wxT("    ($error \"int_range: second argument is not an integer.\"))\n") +
+    wxT("  (when (null hi)\n") +
+    wxT("    (setq hi lo)\n") +
+    wxT("    (setq lo 1))\n") +
+    wxT("  (cons \'(mlist simp) (loop :for i :from lo :to hi :by st :collect i)))\n") +
+    wxT("\n") +
+    wxT("(defvar *default-framerate* 2)\n") +
+    wxT("(defvar $wxanimate_framerate *default-framerate*)\n") +
+    wxT("(defun slide-tag (images)\n") +
+    wxT("  (if (eql *default-framerate* $wxanimate_framerate)\n") +
+    wxT("      ($ldisp (list \'(wxxmltag simp) (format nil \"~{~a;~}\" images) \"slide\" (if (eql $wxanimate_autoplay \'t) \"running=\\\"true\\\" del=\\\"true\\\"\" \"running=\\\"false\\\" del=\\\"true\\\"\")))\n") +
+    wxT("      ($ldisp (list \'(wxxmltag simp) (format nil \"~{~a;~}\" images) \"slide\" (if (eql $wxanimate_autoplay \'t) (format nil \"fr=\\\"~a\\\" running=\\\"true\\\" del=\\\"true\\\"\" $wxanimate_framerate)  (format nil \"fr=\\\"~a\\\" running=\\\"false\\\" del=\\\"true\\\"\" $wxanimate_framerate))\n") +
+    wxT("                    ))))\n") +
+    wxT("\n") +
+    wxT("(defun wxanimate (scene)\n") +
+    wxT("  (let* ((scene (cdr scene))\n") +
+    wxT("	 (a (car scene))\n") +
+    wxT("	 (a-range (meval (cadr scene)))\n") +
+    wxT("	 (expr (caddr scene))\n") +
+    wxT("	 (args (cdddr scene))\n") +
+    wxT("	 (frameno 1)\n") +
+    wxT("	 (images ()))\n") +
+    wxT("    (when (integerp a-range)\n") +
+    wxT("      (setq a-range (cons \'(mlist simp) (loop for i from 1 to a-range collect i))))\n") +
+    wxT("    (dolist (aval (reverse (cdr a-range)))\n") +
+    wxT("      ($wxstatusbar (format nil \"Preparing Frame #~d\" frameno))\n") +
+    wxT("      (setf frameno (+ 1 frameno))\n") +
+    wxT("      (let ((preamble ($wxplot_preamble))\n") +
+    wxT("	    (system-preamble (get-plot-option-string \'$gnuplot_preamble 2))\n") +
+    wxT("	    (filename (wxplot-filename))\n") +
+    wxT("	    (expr (maxima-substitute aval a expr)))\n") +
+    wxT("	(when (string= system-preamble \"false\")\n") +
+    wxT("	  (setq system-preamble \"\"))\n") +
+    wxT("	(setq preamble (format nil \"~a; ~a\" preamble system-preamble))\n") +
+    wxT("	(dolist (arg args)\n") +
+    wxT("	  (if (and (listp arg) (eql (cadr arg) \'$gnuplot_preamble))\n") +
+    wxT("	      (setq preamble (format nil \"~a; ~a\"\n") +
+    wxT("				     preamble (meval (maxima-substitute aval a (caddr arg)))))))\n") +
+    wxT("	(apply #\'$plot2d `(,(meval expr) ,@(mapcar #\'meval args)\n") +
+    wxT("                            ((mlist simp) $plot_format $gnuplot)\n") +
+    wxT("                            ((mlist simp) $gnuplot_term ,(if $wxplot_pngcairo \'$pngcairo \'$png))\n") +
+    wxT("                            ((mlist simp) $gnuplot_preamble ,preamble)\n") +
+    wxT("                            ((mlist simp) $gnuplot_out_file ,filename)))\n") +
+    wxT("	(setq images (cons filename images))))\n") +
+    wxT("    (when images\n") +
+    wxT("      (slide-tag images)))\n") +
+    wxT("  \"\")\n") +
+    wxT("\n") +
+    wxT("(defmspec $with_slider (scene)\n") +
+    wxT("  (wxanimate scene))\n") +
+    wxT("\n") +
+    wxT("(defmspec $wxanimate (scene)\n") +
+    wxT("  (wxanimate scene))\n") +
+    wxT("\n") +
+    wxT("(defvar *windows-OS* (string= *autoconf-win32* \"true\"))\n") +
+    wxT("\n") +
+    wxT("(defun get-file-name-opt (scene)\n") +
+    wxT("  (let (opts filename)\n") +
+    wxT("    (loop for opt in scene do\n") +
+    wxT("         (if (and (not (atom opt))\n") +
+    wxT("                  (eq (caar opt) \'mequal)\n") +
+    wxT("                  (eq (cadr opt) \'$file_name))\n") +
+    wxT("             (setq filename (caddr opt))\n") +
+    wxT("             (setq opts (cons opt opts))))\n") +
+    wxT("    (values (reverse opts) filename)))\n") +
+    wxT("\n") +
+    wxT("(defun get-pic-size-opt ()\n") +
+    wxT("  (cond\n") +
+    wxT("    ((eq ($get \'$draw \'$version) 1)\n") +
+    wxT("     `(((mequal simp) $pic_width ,($first $wxplot_size))\n") +
+    wxT("       ((mequal simp) $pic_height ,($second $wxplot_size))))\n") +
+    wxT("    (t\n") +
+    wxT("     `(((mequal simp) $dimensions ,$wxplot_size)))))\n") +
+    wxT("\n") +
+    wxT("(defun wxanimate-draw (scenes scene-head)\n") +
+    wxT("  (unless ($get \'$draw \'$version) ($load \"draw\"))\n") +
+    wxT("  (multiple-value-bind (scene file-name) (get-file-name-opt (cdr scenes))\n") +
+    wxT("    (let* ((a (meval (car scene)))\n") +
+    wxT("           (a-range (meval (cadr scene)))\n") +
+    wxT("           (*windows-OS* t)\n") +
+    wxT("           (args (cddr scene))\n") +
+    wxT("	   (frameno 1)\n") +
+    wxT("           (images ()))\n") +
+    wxT("      (when (integerp a-range)\n") +
+    wxT("        (setq a-range (cons \'(mlist simp) (loop for i from 1 to a-range collect i))))\n") +
+    wxT("      (if file-name\n") +
+    wxT("          ;; If file_name is set, draw the animation into gif using gnuplot\n") +
+    wxT("          (let (imgs)\n") +
+    wxT("            (dolist (aval (reverse (cdr a-range)))\n") +
+    wxT("              (setq imgs (cons\n") +
+    wxT("                          (cons scene-head\n") +
+    wxT("                                (mapcar #\'(lambda (arg) (meval (maxima-substitute aval a arg)))\n") +
+    wxT("                                        args))\n") +
+    wxT("                          imgs)))\n") +
+    wxT("            ($apply \'$draw\n") +
+    wxT("                    (append\n") +
+    wxT("                     `((mlist simp)\n") +
+    wxT("                       ((mequal simp) $gnuplot_file_name ,$gnuplot_file_name)\n") +
+    wxT("                       ((mequal simp) $data_file_name ,$data_file_name)\n") +
+    wxT("                       ((mequal simp) $terminal $animated_gif)\n") +
+    wxT("                       ((mequal simp) $file_name ,file-name))\n") +
+    wxT("                     (get-pic-size-opt)\n") +
+    wxT("                     imgs))\n") +
+    wxT("            \"\")\n") +
+    wxT("          ;; If file_name is not set, show the animation in wxMaxima\n") +
+    wxT("          (progn\n") +
+    wxT("            (dolist (aval (reverse (cdr a-range)))\n") +
+    wxT("	      ($wxstatusbar (format nil \"Preparing Frame #~d\" frameno))\n") +
+    wxT("	      (setf frameno (+ 1 frameno))\n") +
+    wxT("              (let* ((filename (wxplot-filename nil))\n") +
+    wxT("                     (args (cons scene-head\n") +
+    wxT("                                 (mapcar #\'(lambda (arg) (meval (maxima-substitute aval a arg)))\n") +
+    wxT("                                         args))))\n") +
+    wxT("                (setq images (cons (format nil \"~a.png\" filename) images))\n") +
+    wxT("                ($apply \'$draw\n") +
+    wxT("                        (append\n") +
+    wxT("                         `((mlist simp)\n") +
+    wxT("			   ((mequal simp) $gnuplot_file_name ,$gnuplot_file_name)\n") +
+    wxT("			   ((mequal simp) $data_file_name ,$data_file_name)\n") +
+    wxT("                           ((mequal simp) $terminal ,(if $wxplot_pngcairo \'$pngcairo \'$png))\n") +
+    wxT("                           ((mequal simp) $file_name ,filename))\n") +
+    wxT("                         (get-pic-size-opt)\n") +
+    wxT("                         (list args)))))\n") +
+    wxT("            (when images\n") +
+    wxT("              (slide-tag images))))\n") +
+    wxT("      \"\")))\n") +
+    wxT("\n") +
+    wxT("(defmspec $wxanimate_draw (scene)\n") +
+    wxT("  (wxanimate-draw scene \'($gr2d)))\n") +
+    wxT("\n") +
+    wxT("(defmspec $with_slider_draw (scene)\n") +
+    wxT("  (wxanimate-draw scene \'($gr2d)))\n") +
+    wxT("\n") +
+    wxT("(defmspec $with_slider_draw2d (scene)\n") +
+    wxT("  (wxanimate-draw scene \'($gr2d)))\n") +
+    wxT("\n") +
+    wxT("(defmspec $with_slider_draw3d (scene)\n") +
+    wxT("  (wxanimate-draw scene \'($gr3d)))\n") +
+    wxT("\n") +
+    wxT("(defmspec $wxanimate_draw3d (scene)\n") +
+    wxT("  (wxanimate-draw scene \'($gr3d)))\n") +
+    wxT("\n") +
+    wxT("(defun $wxplot2d (&rest args)\n") +
+    wxT("  (let ((preamble ($wxplot_preamble))\n") +
+    wxT("	(system-preamble (get-plot-option-string \'$gnuplot_preamble 2))\n") +
+    wxT("	(filename (wxplot-filename)))\n") +
+    wxT("    (when (string= system-preamble \"false\")\n") +
+    wxT("      (setq system-preamble \"\"))\n") +
+    wxT("    (setq preamble (format nil \"~a; ~a\" preamble system-preamble))\n") +
+    wxT("    (dolist (arg args)\n") +
+    wxT("      (if (and (listp arg) (eql (cadr arg) \'$gnuplot_preamble))\n") +
+    wxT("	  (setq preamble (format nil \"~a; ~a\" preamble (caddr arg)))))\n") +
+    wxT("    (apply #\'$plot2d `(,@args\n") +
+    wxT("		       ((mlist simp) $plot_format $gnuplot)\n") +
+    wxT("                       ((mlist simp) $gnuplot_term ,(if $wxplot_pngcairo \'$pngcairo \'$png))\n") +
+    wxT("		       ((mlist simp) $gnuplot_preamble ,preamble)\n") +
+    wxT("		       ((mlist simp) $gnuplot_out_file ,filename)))\n") +
+    wxT("    ($ldisp `((wxxmltag simp) ,filename \"img\")))\n") +
+    wxT("  \"\")\n") +
+    wxT("\n") +
+    wxT("(defun $wxplot3d (&rest args)\n") +
+    wxT("  (let ((preamble ($wxplot_preamble))\n") +
+    wxT("	(system-preamble (get-plot-option-string \'$gnuplot_preamble 2))\n") +
+    wxT("	(filename (wxplot-filename)))\n") +
+    wxT("    (when (string= system-preamble \"false\")\n") +
+    wxT("      (setq system-preamble \"\"))\n") +
+    wxT("    (setq preamble (format nil \"~a; ~a\" preamble system-preamble))\n") +
+    wxT("    (dolist (arg args)\n") +
+    wxT("      (if (and (listp arg) (eql (cadr arg) \'$gnuplot_preamble))\n") +
+    wxT("	  (setq preamble (format nil \"~a; ~a\"\n") +
+    wxT("				 preamble (caddr arg)))))\n") +
+    wxT("    (apply #\'$plot3d `(,@args\n") +
+    wxT("		       ((mlist simp) $plot_format $gnuplot)\n") +
+    wxT("                       ((mlist simp) $gnuplot_term ,(if $wxplot_pngcairo \'$pngcairo \'$png))\n") +
+    wxT("		       ((mlist simp) $gnuplot_preamble ,preamble)\n") +
+    wxT("		       ((mlist simp) $gnuplot_out_file ,filename)))\n") +
+    wxT("    ($ldisp `((wxxmltag simp) ,filename \"img\")))\n") +
+    wxT("  \"\")\n") +
+    wxT("\n") +
+    wxT("\n") +
+    wxT("(defun $wxdraw2d (&rest args)\n") +
+    wxT("  (apply #\'$wxdraw\n") +
+    wxT("	 (list (cons \'($gr2d) args))))\n") +
+    wxT("\n") +
+    wxT("(defun $wxdraw3d (&rest args)\n") +
+    wxT("  (apply #\'$wxdraw\n") +
+    wxT("	 (list (cons \'($gr3d) args))))\n") +
+    wxT("\n") +
+    wxT("(defvar $display_graphics t)\n") +
+    wxT("\n") +
+    wxT("(defun option-sublist (lst)\n") +
+    wxT("  (cons \'(mlist simp)\n") +
+    wxT("        (loop for l in lst\n") +
+    wxT("           when (and (listp l) (= ($length l) 2))\n") +
+    wxT("           collect l)))\n") +
+    wxT("\n") +
+    wxT("(defun $wxdraw (&rest args)\n") +
+    wxT("  (unless ($get \'$draw \'$version) ($load \"draw\"))\n") +
+    wxT("  (let* ((file_name_spec ($assoc \'$file_name\n") +
+    wxT("                                 (option-sublist (append (cdar args)\n") +
+    wxT("                                                         (cdr args)))))\n") +
+    wxT("         (filename (or file_name_spec (wxplot-filename nil)))\n") +
+    wxT("	 (*windows-OS* t)\n") +
+    wxT("	 res)\n") +
+    wxT("    (setq res ($apply \'$draw\n") +
+    wxT("                      (append\n") +
+    wxT("                       \'((mlist simp))\n") +
+    wxT("                       args\n") +
+    wxT("                       `(((mequal simp) $gnuplot_file_name ,$gnuplot_file_name)\n") +
+    wxT("			 ((mequal simp) $data_file_name ,$data_file_name)\n") +
+    wxT("                         ((mequal simp) $terminal ,(if $wxplot_pngcairo \'$pngcairo \'$png))\n") +
+    wxT("                         ((mequal simp) $file_name ,filename))\n") +
+    wxT("                       (cond\n") +
+    wxT("                         ((eq ($get \'$draw \'$version) 1)\n") +
+    wxT("                          `(((mequal simp) $pic_width ,($first $wxplot_size))\n") +
+    wxT("                            ((mequal simp) $pic_height ,($second $wxplot_size))))\n") +
+    wxT("                         (t\n") +
+    wxT("                          `(((mequal simp) $dimensions ,$wxplot_size)))))))\n") +
+    wxT("    (if $display_graphics\n") +
+    wxT("	(progn\n") +
+    wxT("          ($ldisp `((wxxmltag simp) ,(format nil \"~a.png\" filename) \"img\"\n") +
+    wxT("                    ,(when file_name_spec\n") +
+    wxT("                           \"del=\\\"no\\\"\")))\n") +
+    wxT("          (setq res \"\"))\n") +
+    wxT("	(setf res `((wxxmltag simp) ,(format nil \"~a.png\" filename) \"img\")))\n") +
+    wxT("    res))\n") +
+    wxT("\n") +
+    wxT("(defmspec $wxdraw_list (args)\n") +
+    wxT("  (unless ($get \'$draw \'$version) ($load \"draw\"))\n") +
+    wxT("  (let (($display_graphics nil))\n") +
+    wxT("    ($ldisp (cons \'(mlist simp) (mapcar #\'meval (cdr args)))))\n") +
+    wxT("  \'$done)\n") +
+    wxT("\n") +
+    wxT("(defun $wximplicit_plot (&rest args)\n") +
+    wxT("  (let ((preamble ($wxplot_preamble))\n") +
+    wxT("	(system-preamble (get-plot-option-string \'$gnuplot_preamble 2))\n") +
+    wxT("	(filename (wxplot-filename)))\n") +
+    wxT("    (when (string= system-preamble \"false\")\n") +
+    wxT("      (setq system-preamble \"\"))\n") +
+    wxT("    (setq preamble (format nil \"~a; ~a\" preamble system-preamble))\n") +
+    wxT("    (dolist (arg args)\n") +
+    wxT("      (if (and (listp arg) (eql (cadr arg) \'$gnuplot_preamble))\n") +
+    wxT("	  (setq preamble (format nil \"~a; ~a\"\n") +
+    wxT("				 preamble (caddr arg)))))\n") +
+    wxT("    ($apply \'$implicit_plot `((mlist simp) ,@args\n") +
+    wxT("			      ((mlist simp) $plot_format $gnuplot)\n") +
+    wxT("                              ((mlist simp) $gnuplot_term ,(if $wxplot_pngcairo \'$pngcairo \'$png))\n") +
+    wxT("			      ((mlist simp) $gnuplot_preamble ,preamble)\n") +
+    wxT("			      ((mlist simp) $gnuplot_out_file ,filename)))\n") +
+    wxT("    ($ldisp `((wxxmltag simp) ,filename \"img\")))\n") +
+    wxT("  \"\")\n") +
+    wxT("\n") +
+    wxT("\n") +
+    wxT("(defun $wxcontour_plot (&rest args)\n") +
+    wxT("  (let ((preamble ($wxplot_preamble))\n") +
+    wxT("	($plot_options $plot_options)\n") +
+    wxT("	(system-preamble (get-plot-option-string \'$gnuplot_preamble 2))\n") +
+    wxT("	(filename (wxplot-filename)))\n") +
+    wxT("    (when (string= system-preamble \"false\")\n") +
+    wxT("      (setq system-preamble \"\"))\n") +
+    wxT("    (setq preamble (format nil \"~a; ~a\" preamble system-preamble))\n") +
+    wxT("    (dolist (arg args)\n") +
+    wxT("      (if (and (listp arg) (eql (cadr arg) \'$gnuplot_preamble))\n") +
+    wxT("	  (setq preamble (format nil \"~a; ~a\" preamble (caddr arg)))))\n") +
+    wxT("    (apply #\'$contour_plot `(,@args\n") +
+    wxT("                             ((mlist simp) $gnuplot_term ,(if $wxplot_pngcairo \'$pngcairo \'$png))\n") +
+    wxT("			     ((mlist simp) $plot_format $gnuplot)\n") +
+    wxT("                             ((mlist simp) $gnuplot_preamble ,preamble)\n") +
+    wxT("			     ((mlist simp) $gnuplot_out_file ,filename)))\n") +
+    wxT("\n") +
+    wxT("    ($ldisp `((wxxmltag simp) ,filename \"img\")))\n") +
+    wxT("  \"\")\n") +
+    wxT("\n") +
+    wxT("(defun $show_image (file)\n") +
+    wxT(" ($ldisp `((wxxmltag simp) ,file \"img\" \"del=\\\"no\\\"\")))\n") +
+    wxT("\n") +
+    wxT(";;\n") +
+    wxT(";; Port of Barton Willis\'s texput function.\n") +
+    wxT(";;\n") +
+    wxT("\n") +
+    wxT("(defun $wxxmlput (e s &optional tx lbp rbp)\n") +
+    wxT("\n") +
+    wxT("  (when (stringp e)\n") +
+    wxT("    (setf e (define-symbol e)))\n") +
+    wxT("\n") +
+    wxT("  (cond (($listp s)\n") +
+    wxT("	 (setq s (margs s)))\n") +
+    wxT("        ((stringp s)\n") +
+    wxT("         (setq s (list s)))\n") +
+    wxT("	((atom s)\n") +
+    wxT("	 (setq s (list (wxxml-stripdollar ($sconcat s))))))\n") +
+    wxT("\n") +
+    wxT("  (when (or (null lbp) (not (integerp lbp)))\n") +
+    wxT("    (setq lbp 180))\n") +
+    wxT("  (when (or (null rbp) (not (integerp rbp)))\n") +
+    wxT("    (setq rbp 180))\n") +
+    wxT("  (cond ((null tx)\n") +
+    wxT("         (if (stringp (nth 0 s))\n") +
+    wxT("             (putprop e (nth 0 s) \'wxxmlword)\n") +
+    wxT("             (let ((fun-name (gensym))\n") +
+    wxT("                   (fun-body\n") +
+    wxT("                    `(append l\n") +
+    wxT("                             (list\n") +
+    wxT("                              (let ((f-x (mfuncall \',s x)))\n") +
+    wxT("                                (if (stringp f-x)\n") +
+    wxT("                                    f-x\n") +
+    wxT("                                    (merror \"wxxml: function ~s did not return a string.~%\"\n") +
+    wxT("                                            ($sconcat \',(nth 0 s))))))\n") +
+    wxT("                             r)))\n") +
+    wxT("               (setf (symbol-function fun-name) (coerce `(lambda (x l r) ,fun-body) \'function))\n") +
+    wxT("               (setf (get e \'wxxml) fun-name))))\n") +
+    wxT("	((eq tx \'$matchfix)\n") +
+    wxT("	 (putprop e \'wxxml-matchfix \'wxxml)\n") +
+    wxT("	 (cond ((< (length s) 2)\n") +
+    wxT("		(merror\n") +
+    wxT("		 \"Improper 2nd argument to `wxxmlput\' for matchfix operator.\"))\n") +
+    wxT("	       ((eq (length s) 2)\n") +
+    wxT("		(putprop e (list (list (nth 0 s)) (nth 1 s)) \'wxxmlsym))\n") +
+    wxT("	       (t\n") +
+    wxT("		(putprop\n") +
+    wxT("		 e (list (list (nth 0 s)) (nth 1 s) (nth 2 s)) \'wxxmlsym))))\n") +
+    wxT("	((eq tx \'$prefix)\n") +
+    wxT("	 (putprop e \'wxxml-prefix \'wxxml)\n") +
+    wxT("	 (putprop e s \'wxxmlsym)\n") +
+    wxT("         (putprop e lbp \'wxxml-lbp)\n") +
+    wxT("         (putprop e rbp \'wxxml-rbp))\n") +
+    wxT("	((eq tx \'$infix)\n") +
+    wxT("	 (putprop e \'wxxml-infix \'wxxml)\n") +
+    wxT("	 (putprop e  s \'wxxmlsym)\n") +
+    wxT("         (putprop e lbp \'wxxml-lbp)\n") +
+    wxT("         (putprop e rbp \'wxxml-rbp))\n") +
+    wxT("	((eq tx \'$postfix)\n") +
+    wxT("	 (putprop e \'wxxml-postfix \'wxxml)\n") +
+    wxT("	 (putprop e  s \'wxxmlsym)\n") +
+    wxT("         (putprop e lbp \'wxxml-lbp))\n") +
+    wxT("        (t (merror \"Improper arguments to `wxxmlput\'.\"))))\n") +
+    wxT("\n") +
+    wxT(";;;;;;;;;;;;;\n") +
+    wxT(";; Auto-loaded functions\n") +
+    wxT(";;;;\n") +
+    wxT("\n") +
+    wxT("(setf (get \'$lbfgs \'autoload) \"lbfgs\")\n") +
+    wxT("(setf (get \'$lcm \'autoload) \"functs\")\n") +
+    wxT("\n") +
+    wxT(";;;;;;;;;;;;;\n") +
+    wxT(";; Statistics functions\n") +
+    wxT(";;;;\n") +
+    wxT("\n") +
+    wxT("(defvar $draw_compound t)\n") +
+    wxT("\n") +
+    wxT("(defmacro create-statistics-wrapper (fun wxfun)\n") +
+    wxT("  `(defun ,wxfun (&rest args)\n") +
+    wxT("     (let (($draw_compound nil) res)\n") +
+    wxT("       (declare (special $draw_compound))\n") +
+    wxT("       (setq res ($apply \',fun (cons \'(mlist simp) args)))\n") +
+    wxT("       ($apply \'$wxdraw2d res))))\n") +
+    wxT("\n") +
+    wxT("(create-statistics-wrapper $histogram $wxhistogram)\n") +
+    wxT("(create-statistics-wrapper $scatterplot $wxscatterplot)\n") +
+    wxT("(create-statistics-wrapper $barsplot $wxbarsplot)\n") +
+    wxT("(create-statistics-wrapper $piechart $wxpiechart)\n") +
+    wxT("(create-statistics-wrapper $boxplot $wxboxplot)\n") +
+    wxT("\n") +
+    wxT("(dolist (fun \'($histogram\n") +
+    wxT("	       $scatterplot\n") +
+    wxT("	       $barsplot\n") +
+    wxT("	       $piechart\n") +
+    wxT("	       $boxplot))\n") +
+    wxT("  (setf (get fun \'autoload) \"descriptive\"))\n") +
+    wxT("\n") +
+    wxT("(dolist (fun \'($mean\n") +
+    wxT("	       $median\n") +
+    wxT("	       $var\n") +
+    wxT("	       $std\n") +
+    wxT("	       $test_mean\n") +
+    wxT("	       $test_means_difference\n") +
+    wxT("	       $test_normality\n") +
+    wxT("	       $simple_linear_regression\n") +
+    wxT("	       $subsample))\n") +
+    wxT("  (setf (get fun \'autoload) \"stats\"))\n") +
+    wxT("\n") +
+    wxT("(setf (get \'$lsquares_estimates \'autoload) \"lsquares\")\n") +
+    wxT("\n") +
+    wxT("(setf (get \'$to_poly_solve \'autoload) \"to_poly_solver\")\n") +
+    wxT("\n") +
+    wxT(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n") +
+    wxT(";;\n") +
+    wxT(";; Redefine load so that it prints the list of functions\n") +
+    wxT(";; used for autocompletion.\n") +
+    wxT(";;\n") +
+    wxT(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n") +
+    wxT("(defun symbol-to-string (s)\n") +
+    wxT("  (maybe-invert-string-case (symbol-name (stripdollar s))))\n") +
+    wxT("\n") +
+    wxT("(defun $print_function (fun)\n") +
+    wxT("  (let ((fun-name (symbol-to-string (caar fun)))\n") +
+    wxT("	(*print-circle* nil)\n") +
+    wxT("	(args (mapcar (lambda (u)\n") +
+    wxT("			(cond ((atom u) (symbol-to-string u))\n") +
+    wxT("			      ((eq (caar u) \'mlist)\n") +
+    wxT("			       ($concat \"[\" (symbol-to-string\n") +
+    wxT("                                             (if (atom (cadr u)) (cadr u) (cadadr u))) \"]\"))\n") +
+    wxT("			      (t (symbol-to-string (cadr u)))))\n") +
+    wxT("		      (cdr fun))))\n") +
+    wxT("    (format nil \"FUNCTION: ~a$TEMPLATE: ~a(~{<~a>~^, ~})\" fun-name fun-name args)))\n") +
+    wxT("\n") +
+    wxT("(defun $add_function_template (&rest functs)\n") +
+    wxT("  (let ((*print-circle* nil))\n") +
+    wxT("    (format t \"<wxxml-symbols>~{~a~^$~}</wxxml-symbols>\" (mapcar #\'$print_function functs))\n") +
+    wxT("    (cons \'(mlist simp) functs)))\n") +
+    wxT("\n") +
+    wxT(";;;\n") +
+    wxT(";;; Rewrite of the function load (maxima/src/mload.lisp)\n") +
+    wxT(";;; (displays functions and variable names after loading a Maxima package so the\n") +
+    wxT(";;; autocomplete functionality knows which function and variable names exist\n") +
+    wxT(";;;\n") +
+    wxT("(no-warning\n") +
+    wxT(" (defun $load (filename)\n") +
+    wxT("   (let ((searched-for\n") +
+    wxT("	  ($file_search1 filename\n") +
+    wxT("			 \'((mlist) $file_search_maxima $file_search_lisp  )))\n") +
+    wxT("	 type)\n") +
+    wxT("     (setq type ($file_type searched-for))\n") +
+    wxT("     (case type\n") +
+    wxT("       (($maxima)\n") +
+    wxT("	($batchload searched-for)\n") +
+    wxT("	(format t \"<wxxml-symbols>~{~a~^$~}</wxxml-symbols>\"\n") +
+    wxT("		(append (mapcar #\'$print_function (cdr ($append $functions $macros)))\n") +
+    wxT("			(mapcar #\'symbol-to-string (cdr $values)))))\n") +
+    wxT("       (($lisp $object)\n") +
+    wxT("	;; do something about handling errors\n") +
+    wxT("	;; during loading. Foobar fail act errors.\n") +
+    wxT("        (no-warning\n") +
+    wxT("         (load-and-tell searched-for)))\n") +
+    wxT("       (t\n") +
+    wxT("	(merror \"Maxima bug: Unknown file type ~M\" type)))\n") +
+    wxT("     searched-for)))\n") +
+    wxT("\n") +
+    wxT(";;;;;;;;;;;;;;;;;;;;;\n") +
+    wxT(";; table_form implementation\n") +
+    wxT("\n") +
+    wxT("(defun make-zeros (n)\n") +
+    wxT("  (cons \'(mlist simp) (loop for i from 1 to n collect \"\")))\n") +
+    wxT("(defun take-first (l n)\n") +
+    wxT("  (if (= n 0) nil (cons (first l) (take-first (rest l) (- n 1)))))\n") +
+    wxT("\n") +
+    wxT("(defun $table_form (mat &rest opts)\n") +
+    wxT("  (when (mapatom mat)\n") +
+    wxT("    ($error \"table_form: the argument should not be an atom.\"))\n") +
+    wxT("  (setq mat ($args mat))\n") +
+    wxT("  (unless (every #\'$listp (cdr mat))\n") +
+    wxT("    (setq mat (cons \'(mlist simp)\n") +
+    wxT("                    (mapcar (lambda (e) (list \'(mlist simp) e))\n") +
+    wxT("                            (cdr mat)))))\n") +
+    wxT("  (setq opts (cons \'(mlist simp) opts))\n") +
+    wxT("  (let ((row-names ($assoc \'$row_names opts))\n") +
+    wxT("	(col-names ($assoc \'$column_names opts))\n") +
+    wxT("	(m (apply #\'max (mapcar \'$length (cdr mat))))\n") +
+    wxT("	(n (length (cdr mat)))\n") +
+    wxT("	(mtrx \'(special)))\n") +
+    wxT("    (when ($assoc \'$transpose opts)\n") +
+    wxT("      (rotatef m n))\n") +
+    wxT("    (when (eq row-names \'$auto)\n") +
+    wxT("      (setq row-names (cons \'(mlist simp) (loop for i from 1 to n collect i))))\n") +
+    wxT("    (when (eq col-names \'$auto)\n") +
+    wxT("      (setq col-names (cons \'(mlist simp) (loop for i from 1 to m collect i))))\n") +
+    wxT("    (when row-names\n") +
+    wxT("      (setq row-names ($append row-names (make-zeros (- n ($length row-names)))))\n") +
+    wxT("      (setq row-names (cons \'(mlist simp) (take-first (cdr row-names) n))))\n") +
+    wxT("    (when col-names\n") +
+    wxT("      (setq col-names ($append col-names (make-zeros (- m ($length col-names)))))\n") +
+    wxT("      (setq col-names (cons \'(mlist simp) (take-first (cdr col-names) m))))\n") +
+    wxT("    (when (and row-names col-names)\n") +
+    wxT("      (setq col-names ($cons \"\" col-names)))\n") +
+    wxT("    (setq mat (cons \'(mlist simp) (mapcar\n") +
+    wxT("				   (lambda (r) ($append r (make-zeros (- m ($length r)))))\n") +
+    wxT("				   (cdr mat))))\n") +
+    wxT("    (setq mat ($apply \'$matrix mat))\n") +
+    wxT("    (when ($assoc \'$transpose opts)\n") +
+    wxT("      (setq mat ($transpose mat)))\n") +
+    wxT("    (when row-names\n") +
+    wxT("      (setq mat (cons \'($matrix simp)\n") +
+    wxT("		      (mapcar #\'$append (cdr ($transpose row-names)) (cdr mat))))\n") +
+    wxT("      (setq mtrx (cons \'rownames mtrx)))\n") +
+    wxT("    (when col-names\n") +
+    wxT("      (setq mat (cons \'(matrix simp)\n") +
+    wxT("		      (cons col-names (cdr mat))))\n") +
+    wxT("      (setq mtrx (cons \'colnames mtrx)))\n") +
+    wxT("    ($ldisp (cons (append \'($matrix simp) mtrx) (cdr mat)))\n") +
+    wxT("    \'$done))\n") +
+    wxT("\n") +
+    wxT("(putprop \'$table_form t \'evfun)\n") +
+    wxT("\n") +
+    wxT(";; Load the initial functions (from mac-init.mac)\n") +
+    wxT("(let ((*print-circle* nil))\n") +
+    wxT("  (format t \"<wxxml-symbols>~{~a~^$~}</wxxml-symbols>\"\n") +
+    wxT("	  (mapcar #\'$print_function (cdr ($append $functions $macros)))))\n") +
+    wxT("\n") +
+    wxT("(no-warning\n") +
+    wxT(" (defun mredef-check (fnname)\n") +
+    wxT("   (declare (ignore fnname))\n") +
+    wxT("   t))\n") +
+    wxT("\n") +
+    wxT("(when ($file_search \"wxmaxima-init\")\n") +
+    wxT("  ($load \"wxmaxima-init\"))\n") +
+    wxT("\n") +
+    wxT(";;; A function that loads bitmaps from files as a slideshow.\n") +
+    wxT(";;; Todo: Replace this function by at least half-way-optimized LISP code.\n") +
+    wxT("(progn\n") +
+    wxT(" (defprop $wxanimate_from_imgfiles t translated)\n") +
+    wxT(" (add2lnc \'$wxanimate_from_imgfiles $props)\n") +
+    wxT(" (defmtrfun ($wxanimate_from_imgfiles $any mdefine t nil)\n") +
+    wxT("      ($x)\n") +
+    wxT("    (declare (special $x))\n") +
+    wxT("    (progn\n") +
+    wxT("     (simplify (mfunction-call $printf t \'\"<mth><slide\"))\n") +
+    wxT("     (cond\n") +
+    wxT("      ((is-boole-check (trd-msymeval $wxanimate_autoplay \'$wxanimate_autoplay))\n") +
+    wxT("       (simplify (mfunction-call $printf t \'\" running=\\\"false\\\"\"))))\n") +
+    wxT("     (cond\n") +
+    wxT("      ((like\n") +
+    wxT("        (simplify\n") +
+    wxT("         `((mfactorial)\n") +
+    wxT("           ,(trd-msymeval $wxanimate_framerate \'$wxanimate_framerate)))\n") +
+    wxT("        \'$wxanimate_framerate)\n") +
+    wxT("       (simplify\n") +
+    wxT("        (mfunction-call $printf t \'\" fr=\\\"~d\\\"\"\n") +
+    wxT("                        (trd-msymeval $wxanimate_framerate\n") +
+    wxT("                                      \'$wxanimate_framerate)))))\n") +
+    wxT("     (simplify (mfunction-call $printf t \'\">\"))\n") +
+    wxT("     (do (($i)\n") +
+    wxT("          (mdo (cdr $x) (cdr mdo)))\n") +
+    wxT("         ((null mdo) \'$done)\n") +
+    wxT("       (declare (special $i))\n") +
+    wxT("       (setq $i (car mdo))\n") +
+    wxT("       (simplify (mfunction-call $printf t \'\"~a;\" $i)))\n") +
+    wxT("     (simplify (mfunction-call $printf t \'\"</slide></mth>\")))\n") +
+    wxT("    ))\n");
+
+  int parens = 0;
   wxString cmd;
+  
   Dirstructure dirstruct;
-  cmd = wxT(":lisp-quiet ($load \"") + dirstruct.DataDir() + wxT("/wxmathml.lisp\")\n");
+  wxStringTokenizer wxmathml_lisp(wxMathML_lisp, "\n");
+  while(wxmathml_lisp.HasMoreTokens())
+  {
+    wxString line = wxmathml_lisp.GetNextToken();
+    wxString lineWithoutComments;
+    int commentPos = line.Find(wxT(";;"));
+    if (commentPos != wxNOT_FOUND)
+    {
+      lineWithoutComments = line.Left(commentPos);
+    }
+    else
+      lineWithoutComments = line;
     
+    for (wxString::iterator it = lineWithoutComments.begin(); it != lineWithoutComments.end(); ++it)
+    {
+      if(*it == wxT('('))
+        parens ++;
+      if(*it == wxT(')'))
+        parens --;
+    }
+
+    wxASSERT(parens >= 0);
+
+    wxString line_trimmed(lineWithoutComments);
+    line_trimmed.Trim();
+    if (line_trimmed != wxEmptyString)
+      cmd += lineWithoutComments + wxT("\n");
+    
+
+    if(cmd == wxT("\n"))
+      cmd = wxEmptyString;
+    
+    if (parens == 0)
+    {
+      if(cmd != wxEmptyString) 
+      {
+        cmd = wxT(":lisp-quiet ") + cmd;
+        SendMaxima(cmd);
+        std::cerr<<"CMD=\""<<cmd<<"\"\n";
+      }
+      cmd = wxEmptyString;
+    }
+  }
+
+  wxASSERT(cmd == wxEmptyString);
+
 #if defined (__WXMAC__)
   wxString gnuplotbin(wxT("/Applications/Gnuplot.app/Contents/Resources/bin/gnuplot"));
   if (wxFileExists(gnuplotbin))
-    cmd += wxT("\n:lisp-quiet (setf $gnuplot_command \"") + gnuplotbin + wxT("\")\n");
-#endif
+    cmd = wxT("\n:lisp-quiet (setf $gnuplot_command \"") + gnuplotbin + wxT("\")\n");
   cmd.Replace(wxT("\\"),wxT("/"));
   SendMaxima(cmd);
+#endif
 
 
   // A few variables for additional debug info in wxbuild_info();
