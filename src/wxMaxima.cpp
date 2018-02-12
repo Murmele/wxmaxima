@@ -2527,7 +2527,6 @@ void wxMaxima::SetupVariables()
   SendMaxima(wxT(":lisp-quiet (defparameter $wxsubscripts ") + subscriptval + wxT(")\n"));
 
   wxString wxMathML_lisp =
-    wxString("to_lisp();\n") +
     wxString(";; This is to necessary make file and directory names that contain special characters\n") +
     wxT(";; work under windows.\n") +
     wxT("#+sbcl (setf sb-impl::*default-external-format* :UTF-8)\n") +
@@ -4459,11 +4458,58 @@ void wxMaxima::SetupVariables()
     wxT("       (setq $i (car mdo))\n") +
     wxT("       (simplify (mfunction-call $printf t \'\"~a;\" $i)))\n") +
     wxT("     (simplify (mfunction-call $printf t \'\"</slide></mth>\")))\n") +
-    wxT("    ))\n") +
-    wxT("(to-maxima)\n");
+    wxT("    ))\n");
+
+  int parens = 0;
+  wxString cmd;
   
-  SendMaxima(wxMathML_lisp);
+  Dirstructure dirstruct;
+  wxStringTokenizer wxmathml_lisp(wxMathML_lisp, "\n");
+  while(wxmathml_lisp.HasMoreTokens())
+  {
+    wxString line = wxmathml_lisp.GetNextToken();
+    wxString lineWithoutComments;
+    int commentPos = line.Find(wxT(";;"));
+    if (commentPos != wxNOT_FOUND)
+    {
+      lineWithoutComments = line.Left(commentPos);
+    }
+    else
+      lineWithoutComments = line;
     
+    for (wxString::iterator it = lineWithoutComments.begin(); it != lineWithoutComments.end(); ++it)
+    {
+      if(*it == wxT('('))
+        parens ++;
+      if(*it == wxT(')'))
+        parens --;
+    }
+
+    wxASSERT(parens >= 0);
+
+    wxString line_trimmed(lineWithoutComments);
+    line_trimmed.Trim();
+    if (line_trimmed != wxEmptyString)
+      cmd += lineWithoutComments + wxT("\n");
+    
+
+    if(cmd == wxT("\n"))
+      cmd = wxEmptyString;
+    
+    if (parens == 0)
+    {
+      if(cmd != wxEmptyString) 
+      {
+        cmd = wxT(":lisp-quiet ") + cmd;
+        SendMaxima(cmd);
+        std::cerr<<"CMD=\""<<cmd<<"\"\n";
+      }
+      cmd = wxEmptyString;
+    }
+  }
+
+  wxASSERT(cmd == wxEmptyString);
+
 #if defined (__WXMAC__)
   wxString gnuplotbin(wxT("/Applications/Gnuplot.app/Contents/Resources/bin/gnuplot"));
   if (wxFileExists(gnuplotbin))
