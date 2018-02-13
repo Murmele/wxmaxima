@@ -4490,10 +4490,10 @@ void wxMaxima::SetupVariables()
     wxString line_trimmed(lineWithoutComments);
     line_trimmed.Trim();
     if (line_trimmed != wxEmptyString)
-      cmd += lineWithoutComments + wxT("\n");
+      cmd += lineWithoutComments + wxT(" ");
     
 
-    if(cmd == wxT("\n"))
+    if(cmd == wxT(" "))
       cmd = wxEmptyString;
     
     if (parens == 0)
