@@ -216,6 +216,7 @@ public:
     menu_defaultAutosubscript,
     menu_alwaysAutosubscript,
     menu_draw_setup,
+    menu_draw_curveSettings,
     menu_draw_explicit,
     menu_draw_implicit,
     button_factor_id,
@@ -627,6 +628,8 @@ private:
       */
       void SetDimensions(int dimensions);
     private:
+      wxButton *m_draw_setup;
+      wxButton *m_draw_curveSettings;
       wxButton *m_draw_explicit;
       wxButton *m_draw_implicit;
     };

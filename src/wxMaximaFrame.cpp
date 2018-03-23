@@ -1808,11 +1808,15 @@ void wxMaximaFrame::DrawPane::SetDimensions(int dimensions)
   {
     m_draw_explicit->Enable(true);
     m_draw_implicit->Enable(true);
+    m_draw_curveSettings->Enable(true);
+    m_draw_setup->Enable(false);
   }
   else
   {
     m_draw_explicit->Enable(false);
     m_draw_implicit->Enable(false);
+    m_draw_curveSettings->Enable(false);
+    m_draw_setup->Enable(true);
   }
 }
 
@@ -1828,8 +1832,12 @@ wxMaximaFrame::DrawPane::DrawPane(wxWindow *parent, int id) : wxPanel(parent, id
   int border = 0;
 #endif
 
-  vbox->Add(new wxButton(this, menu_draw_setup, _("Setup 2D/3D")), 0, style, border);
+  vbox->Add(m_draw_setup = new wxButton(this, menu_draw_setup, _("Setup 2D/3D")), 0, style, border);
+  m_draw_setup->SetToolTip(_("The first step of drawing: Define if we want to make a 2D or a 3D plot"));
+  vbox->Add(m_draw_curveSettings = new wxButton(this, menu_draw_curveSettings, _("Set Style")), 0, style, border);
+  m_draw_curveSettings->SetToolTip(_("The settings for the object that is plotted next"));
   grid->Add(m_draw_explicit = new wxButton(this, menu_draw_explicit, _("Expression")), 0, style, border);
+  m_draw_explicit->SetToolTip(_("The standard plot command: Plot an equation as a curve"));
   grid->Add(m_draw_implicit = new wxButton(this, menu_draw_implicit, _("Implicit Plot")), 0, style, border);
   m_draw_implicit->SetToolTip(_("Draw all points an equation is true at"));
   vbox->Add(grid);
