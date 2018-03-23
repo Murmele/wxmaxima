@@ -88,19 +88,20 @@ public:
       This event is assigned an ID higher than the highest ID wxWidgets assigns to 
       its internal events in order to avoid ID clashes.
     */
-            menu_pane_hideall = wxID_HIGHEST + 1,
+    menu_pane_hideall = wxID_HIGHEST + 1,
     /*! Both used as the "toggle the math pane" command and as the ID of the math pane
 
       Since this enum is also used for iterating over the panes it is vital 
       that this entry stays that of the first pane in this enum.
     */
-            menu_pane_math,
+    menu_pane_math,
     menu_pane_history,    //!< Both the "toggle the history pane" command and the history pane
     menu_pane_structure,        //!< Both the "toggle the structure pane" command and the structure
     menu_pane_xmlInspector,        //!< Both the "toggle the xml monitor" command and the monitor pane
     menu_pane_format,    //!< Both the "toggle the format pane" command and the format pane
 #ifdef wxUSE_UNICODE
     menu_pane_greek,            //!< Both the "toggle the format pane" command for the "greek" pane
+    menu_pane_draw,             //!< Both the "toggle the format pane" command for the "draw" pane
     menu_pane_symbols,          //!< Both the "toggle the format pane" command for the "symbols" pane
 #endif
     /*! Both used as the "toggle the stats pane" command and as the ID of the stats pane
@@ -108,7 +109,7 @@ public:
       Since this enum is also used for iterating over the panes it is vital 
       that this entry stays that of the last pane in this enum.
     */
-            menu_pane_stats,
+    menu_pane_stats,
 
     socket_client_id,
     socket_server_id,
@@ -214,6 +215,9 @@ public:
     menu_noAutosubscript,
     menu_defaultAutosubscript,
     menu_alwaysAutosubscript,
+    menu_draw_setup,
+    menu_draw_explicit,
+    menu_draw_implicit,
     button_factor_id,
     button_solve,
     button_solve_ode,
@@ -608,6 +612,26 @@ private:
   wxPanel *CreateMathPane();
 
   wxPanel *CreateFormatPane();
+
+  //! The class for the sidebar with the draw commands
+  class DrawPane: public wxPanel
+    {
+    public:
+      DrawPane(wxWindow *parent, int ID = wxID_ANY);
+      /*! Tell the sidebar if we currently are inside a 2D or a 3D plot command
+        
+        \param dimensions
+               - 0 = We aren't inside a plot
+               - 2 = We are inside a 2D plot
+               - 3 = We are inside a 3D plot
+      */
+      void SetDimensions(int dimensions);
+    private:
+      wxButton *m_draw_explicit;
+      wxButton *m_draw_implicit;
+    };
+  //! The sidebar with the draw commands
+  DrawPane *m_drawPane;
 
   /*! A button for the greek pane
     
