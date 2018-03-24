@@ -98,7 +98,7 @@ wxString EditorCell::GetCommandUnderCursor()
     return wxEmptyString;
 
   wxString result;
-  int pos = 0;
+  int pos = 1;
   
   wxString::iterator ch = m_text.begin();
   while (ch < m_text.end())
