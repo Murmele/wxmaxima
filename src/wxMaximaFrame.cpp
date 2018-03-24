@@ -1804,6 +1804,9 @@ wxPanel *wxMaximaFrame::CreateFormatPane()
 
 void wxMaximaFrame::DrawPane::SetDimensions(int dimensions)
 {
+  if(dimensions == m_dimensions)
+    return;
+  
   if(dimensions > 0)
   {
     m_draw_explicit->Enable(true);
@@ -1818,6 +1821,7 @@ void wxMaximaFrame::DrawPane::SetDimensions(int dimensions)
     m_draw_setup2d->Enable(true);
     m_draw_setup3d->Enable(true);
   }
+  m_dimensions = dimensions;
 }
 
 wxMaximaFrame::DrawPane::DrawPane(wxWindow *parent, int id) : wxPanel(parent, id)
@@ -1825,7 +1829,7 @@ wxMaximaFrame::DrawPane::DrawPane(wxWindow *parent, int id) : wxPanel(parent, id
   wxBoxSizer  *vbox = new wxBoxSizer(wxVERTICAL);
   wxGridSizer *grid2d3d = new wxGridSizer(2);
   wxGridSizer *grid = new wxGridSizer(2);
-
+  m_dimensions = -1;
   int style = wxALL | wxEXPAND;
 #if defined __WXMSW__
   int border = 1;
@@ -1835,12 +1839,10 @@ wxMaximaFrame::DrawPane::DrawPane(wxWindow *parent, int id) : wxPanel(parent, id
 
   grid2d3d->Add(m_draw_setup2d = new wxButton(this, menu_draw_setup2d, _("2D")),
                 0, style, border);
-  m_draw_setup2d->SetToolTip(_("The first step of drawing: Define we want a 2D plot\n"
-                               "Right-Click to get additional options"));
+  m_draw_setup2d->SetToolTip(_("Setup a 2D plot"));
   grid2d3d->Add(m_draw_setup3d = new wxButton(this, menu_draw_setup3d, _("3D")),
                 0, style, border);
-  m_draw_setup3d->SetToolTip(_("The first step of drawing: Define we want a 3D plot\n"
-                               "Right-Click to get additional options"));
+  m_draw_setup3d->SetToolTip(_("Setup a 3D plot"));
   vbox->Add(grid2d3d, wxSizerFlags().Expand());
   grid->Add(m_draw_explicit = new wxButton(this, menu_draw_explicit, _("Expression")),
             0, style, border);

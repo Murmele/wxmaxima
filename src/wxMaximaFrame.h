@@ -634,10 +634,12 @@ private:
       wxButton *m_draw_setup3d;
       wxButton *m_draw_explicit;
       wxButton *m_draw_implicit;
+      int m_dimensions;
     };
+protected:
   //! The sidebar with the draw commands
   DrawPane *m_drawPane;
-
+private:
   /*! A button for the greek pane
     
     \param parent The parent panel/window

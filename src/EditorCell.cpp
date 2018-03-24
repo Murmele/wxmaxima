@@ -89,6 +89,43 @@ wxString EditorCell::EscapeHTMLChars(wxString input)
   return input;
 }
 
+wxString EditorCell::GetCommandUnderCursor()
+{
+  if(!IsActive())
+    return wxEmptyString;
+    
+  if(m_text == wxEmptyString)
+    return wxEmptyString;
+
+  wxString result;
+  int pos = 0;
+  
+  wxString::iterator ch = m_text.begin();
+  while (ch < m_text.end())
+  {
+    result += *ch;
+    if(*ch == wxT('\\'))
+    {
+      ++ch;++pos;
+      if(ch < m_text.end())
+        result += *ch;
+    }
+    else
+    {
+      if((*ch == ';') || (*ch == '$'))
+      {
+        if(m_positionOfCaret < pos)
+          return result;
+        result = wxEmptyString;
+      }
+    }
+    
+    if(ch < m_text.end())
+      ++ch;++pos;
+  }
+  return result;
+}
+
 wxString EditorCell::PrependNBSP(wxString input)
 {
   bool firstSpace = true;;

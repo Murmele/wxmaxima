@@ -2912,6 +2912,30 @@ void wxMaxima::OnIdle(wxIdleEvent &event)
   if((m_xmlInspector != NULL) && (m_xmlInspector->UpdateNeeded()))
     m_xmlInspector->Update();
   
+  if(m_drawPane)
+  {
+    EditorCell *editor = m_console->GetActiveCell();
+    if(editor)
+    {
+      wxString command = m_console->GetActiveCell()->GetCommandUnderCursor();
+      int dimensions = 0;
+      if(command.Contains(wxT("gr2d")))
+        dimensions = 2;
+      if(command.Contains(wxT("gr3d")))
+        dimensions = 3;
+      if(command.Contains(wxT("draw2d")))
+        dimensions = 2;
+      if(command.Contains(wxT("draw3d")))
+        dimensions = 3;
+      m_drawPane->SetDimensions(dimensions);
+    }
+    else
+      m_drawPane->SetDimensions(0);
+  }
+  else
+  {
+    m_drawPane->SetDimensions(0);
+  }
   // Tell wxWidgets it can process its own idle commands, as well.
   event.Skip();
 }
