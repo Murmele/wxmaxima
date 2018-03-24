@@ -106,7 +106,7 @@ public:
 
   ~EditorCell();
 
-  //! Determine which command is currently under the cursor
+  //! Get the whole maxima command that is currently under the cursor (including all arguments)
   wxString GetCommandUnderCursor();
 
   //! May this Editor Cell contain the answer to a question?
