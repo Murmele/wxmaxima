@@ -1811,13 +1811,17 @@ void wxMaximaFrame::DrawPane::SetDimensions(int dimensions)
   {
     m_draw_explicit->Enable(true);
     m_draw_implicit->Enable(true);
+    m_draw_fgcolor->Enable(true);
+    m_draw_fillcolor->Enable(true);
     m_draw_setup2d->Enable(false);
     m_draw_setup3d->Enable(false);
   }
   else
   {
-    m_draw_explicit->Enable(false);
-    m_draw_implicit->Enable(false);
+    m_draw_explicit->Enable(true);
+    m_draw_implicit->Enable(true);
+    m_draw_fgcolor->Enable(true);
+    m_draw_fillcolor->Enable(true);
     m_draw_setup2d->Enable(true);
     m_draw_setup3d->Enable(true);
   }
@@ -1837,10 +1841,10 @@ wxMaximaFrame::DrawPane::DrawPane(wxWindow *parent, int id) : wxPanel(parent, id
   int border = 0;
 #endif
 
-  grid2d3d->Add(m_draw_setup2d = new wxButton(this, menu_draw_setup2d, _("2D")),
+  grid2d3d->Add(m_draw_setup2d = new wxButton(this, menu_draw_2d, _("2D")),
                 0, style, border);
   m_draw_setup2d->SetToolTip(_("Setup a 2D plot"));
-  grid2d3d->Add(m_draw_setup3d = new wxButton(this, menu_draw_setup3d, _("3D")),
+  grid2d3d->Add(m_draw_setup3d = new wxButton(this, menu_draw_3d, _("3D")),
                 0, style, border);
   m_draw_setup3d->SetToolTip(_("Setup a 3D plot"));
   vbox->Add(grid2d3d, wxSizerFlags().Expand());
@@ -1850,11 +1854,17 @@ wxMaximaFrame::DrawPane::DrawPane(wxWindow *parent, int id) : wxPanel(parent, id
   grid->Add(m_draw_implicit = new wxButton(this, menu_draw_implicit, _("Implicit Plot")),
             0, style, border);
   m_draw_implicit->SetToolTip(_("Draw all points an equation is true at"));
+  grid->Add(m_draw_fgcolor = new wxButton(this, menu_draw_fgcolor, _("Line color")),
+            0, style, border);
+  m_draw_fgcolor->SetToolTip(_("The color of the next line to draw"));
+  grid->Add(m_draw_fillcolor = new wxButton(this, menu_draw_fillcolor, _("Fill color")),
+            0, style, border);
+  m_draw_fillcolor->SetToolTip(_("The fill color for the next objects"));
   vbox->Add(grid);
 
   SetDimensions(0);
   SetSizerAndFit(vbox);
-//  vbox->SetSizeHints(this);
+  vbox->SetSizeHints(this);
 }
 
 void wxMaximaFrame::ShowToolBar(bool show)

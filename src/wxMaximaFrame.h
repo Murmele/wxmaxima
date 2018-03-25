@@ -215,12 +215,12 @@ public:
     menu_noAutosubscript,
     menu_defaultAutosubscript,
     menu_alwaysAutosubscript,
-    menu_draw_setup2d,
-    menu_draw_setup3d,
     menu_draw_2d,
     menu_draw_3d,
     menu_draw_explicit,
     menu_draw_implicit,
+    menu_draw_fgcolor,
+    menu_draw_fillcolor,
     button_factor_id,
     button_solve,
     button_solve_ode,
@@ -629,11 +629,14 @@ private:
                - 3 = We are inside a 3D plot
       */
       void SetDimensions(int dimensions);
+      int  GetDimensions() { return m_dimensions; }
     private:
       wxButton *m_draw_setup2d;
       wxButton *m_draw_setup3d;
       wxButton *m_draw_explicit;
       wxButton *m_draw_implicit;
+      wxButton *m_draw_fgcolor;
+      wxButton *m_draw_fillcolor;
       int m_dimensions;
     };
 protected:

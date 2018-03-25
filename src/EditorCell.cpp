@@ -89,7 +89,60 @@ wxString EditorCell::EscapeHTMLChars(wxString input)
   return input;
 }
 
-wxString EditorCell::GetCommandUnderCursor()
+void EditorCell::AddDrawParameter(wxString param)
+{
+  if(m_positionOfCaret < 0)
+    return;
+
+  int pos = 1;
+  int commaPos = 1;
+
+  // Insert a comma if necessary
+  wxString::iterator ch = m_text.begin();
+  bool commaNeeded = false;
+  while (ch < m_text.end())
+  {
+    if(
+      (*ch == wxT('(')) ||
+      (*ch == wxT('[')) ||
+      (*ch == wxT(','))
+      )
+      commaNeeded = false;
+    else
+    {
+      if(!(
+           (*ch == wxT(' ')) ||
+           (*ch == wxT('\n')) ||
+           (*ch == wxT('\r')) ||
+           (*ch == wxT('\t'))
+           )
+        )
+      {
+        commaNeeded = true;
+        commaPos = pos;
+      }
+    }
+    
+    if(pos == m_positionOfCaret)
+      break;
+    
+      ++ch;++pos;
+  }
+  
+  if(commaNeeded)
+  {
+    m_text = m_text.Left(commaPos) + wxT(",") + m_text.Right(m_text.Length() - commaPos);
+    m_positionOfCaret ++;
+  }
+  m_text = m_text.Left(m_positionOfCaret) +
+    param +
+    m_text.Right(m_text.Length() - m_positionOfCaret);
+  m_positionOfCaret += param.Length();
+  
+  StyleText();
+}
+
+wxString EditorCell::GetFullCommandUnderCursor()
 {
   if(!IsActive())
     return wxEmptyString;
