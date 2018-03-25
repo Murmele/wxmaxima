@@ -1876,11 +1876,10 @@ wxMaximaFrame::DrawPane::DrawPane(wxWindow *parent, int id) : wxPanel(parent, id
   grid->Add(m_draw_fillcolor = new wxButton(this, menu_draw_fillcolor, _("Fill color")),
             0, style, border);
   m_draw_fillcolor->SetToolTip(_("The fill color for the next objects"));
-  vbox->Add(grid);
-
-  SetDimensions(0);
+  vbox->Add(grid, wxSizerFlags().Expand());
   SetSizerAndFit(vbox);
   vbox->SetSizeHints(this);
+  SetDimensions(0);
 }
 
 void wxMaximaFrame::ShowToolBar(bool show)
