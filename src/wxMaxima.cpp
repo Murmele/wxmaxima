@@ -4915,6 +4915,16 @@ void wxMaxima::DrawMenu(wxCommandEvent &event)
       AddDrawParameter(
         wxString::Format("color=\"#%02x%02x%02x\"",
                          col.Red(),col.Green(),col.Blue()));
+    break;
+  }
+  case menu_draw_fillcolor:
+  {
+    wxColour col = wxGetColourFromUser(this);
+    if (col.IsOk())
+      AddDrawParameter(
+        wxString::Format("fill_color=\"#%02x%02x%02x\"",
+                         col.Red(),col.Green(),col.Blue()));
+  break;
   }
   }
 }
