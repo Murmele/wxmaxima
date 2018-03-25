@@ -384,6 +384,8 @@ protected:
 
   void TryUpdateInspector();
 
+  void UpdateDrawPane();
+  
   wxString ExtractFirstExpression(wxString entry);
 
   wxString GetDefaultEntry();

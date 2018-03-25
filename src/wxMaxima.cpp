@@ -2912,8 +2912,16 @@ void wxMaxima::OnIdle(wxIdleEvent &event)
 
   if((m_xmlInspector != NULL) && (m_xmlInspector->UpdateNeeded()))
     m_xmlInspector->Update();
+
+  UpdateDrawPane();
   
-  if(m_drawPane)
+  // Tell wxWidgets it can process its own idle commands, as well.
+  event.Skip();
+}
+
+void wxMaxima::UpdateDrawPane()
+{
+    if(m_drawPane)
   {
     EditorCell *editor = m_console->GetActiveCell();
     if(editor)
@@ -2937,8 +2945,6 @@ void wxMaxima::OnIdle(wxIdleEvent &event)
   {
     m_drawPane->SetDimensions(0);
   }
-  // Tell wxWidgets it can process its own idle commands, as well.
-  event.Skip();
 }
 
 ///--------------------------------------------------------------------------------
@@ -4889,6 +4895,8 @@ void wxMaxima::DrawMenu(wxCommandEvent &event)
   if(!m_drawPane)
     return;
 
+  UpdateDrawPane();
+
   if(m_console != NULL)
     m_console->CloseAutoCompletePopup();
 
@@ -4925,6 +4933,34 @@ void wxMaxima::DrawMenu(wxCommandEvent &event)
         wxString::Format("fill_color=\"#%02x%02x%02x\"",
                          col.Red(),col.Green(),col.Blue()));
   break;
+  }
+  case menu_draw_title:
+  {
+    Gen1Wiz *wiz = new Gen1Wiz(this, -1, m_console->m_configuration,
+                               _("Set the diagram title"),
+                               _("Title (Sub- and superscripts as x_{10} or x^{10})"),expr);
+    wiz->Centre(wxBOTH);
+    if (wiz->ShowModal() == wxID_OK)
+    {
+      cmd = wxT("title=\"") + wiz->GetValue() + wxT("\"");
+      AddDrawParameter(cmd);
+    }
+    wiz->Destroy();
+    break;
+  }
+  case menu_draw_key:
+  {
+    Gen1Wiz *wiz = new Gen1Wiz(this, -1, m_console->m_configuration,
+                               _("Set the next plot's title"),
+                               _("Title (Sub- and superscripts as x_{10} or x^{10})"),expr);
+    wiz->Centre(wxBOTH);
+    if (wiz->ShowModal() == wxID_OK)
+    {
+      cmd = wxT("key=\"") + wiz->GetValue() + wxT("\"");
+      AddDrawParameter(cmd);
+    }
+    wiz->Destroy();
+    break;
   }
   }
 }
@@ -8348,6 +8384,10 @@ EVT_UPDATE_UI(menu_show_toolbar, wxMaxima::UpdateMenus)
                 EVT_BUTTON(menu_draw_fgcolor,wxMaxima::DrawMenu)
                 EVT_MENU(menu_draw_fillcolor,wxMaxima::DrawMenu)
                 EVT_BUTTON(menu_draw_fillcolor,wxMaxima::DrawMenu)
+                EVT_MENU(menu_draw_title,wxMaxima::DrawMenu)
+                EVT_BUTTON(menu_draw_title,wxMaxima::DrawMenu)
+                EVT_MENU(menu_draw_key,wxMaxima::DrawMenu)
+                EVT_BUTTON(menu_draw_key,wxMaxima::DrawMenu)
                 EVT_IDLE(wxMaxima::OnIdle)
                 EVT_MENU(menu_remove_output, wxMaxima::EditMenu)
                 EVT_MENU_RANGE(menu_recent_document_0, menu_recent_document_29, wxMaxima::OnRecentDocument)

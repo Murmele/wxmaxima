@@ -221,6 +221,8 @@ public:
     menu_draw_implicit,
     menu_draw_fgcolor,
     menu_draw_fillcolor,
+    menu_draw_title,
+    menu_draw_key,
     button_factor_id,
     button_solve,
     button_solve_ode,
@@ -637,6 +639,8 @@ private:
       wxButton *m_draw_implicit;
       wxButton *m_draw_fgcolor;
       wxButton *m_draw_fillcolor;
+      wxButton *m_draw_title;
+      wxButton *m_draw_key;
       int m_dimensions;
     };
 protected:

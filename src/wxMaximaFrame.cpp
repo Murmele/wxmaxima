@@ -387,6 +387,12 @@ m_manager.GetPane(wxT("greek")) = m_manager.GetPane(wxT("greek")).
             Show(true).
             MaxSize(symbolsPane->GetEffectiveMinSize());
 
+  m_manager.GetPane(wxT("draw")) = m_manager.GetPane(wxT("draw")).
+    MinSize(symbolsPane->GetEffectiveMinSize()).
+    BestSize(symbolsPane->GetEffectiveMinSize()).
+    Show(true).
+    MaxSize(symbolsPane->GetEffectiveMinSize());
+
   
   wxConfigBase *config = wxConfig::Get();
   bool loadPanes = true;
@@ -1811,6 +1817,8 @@ void wxMaximaFrame::DrawPane::SetDimensions(int dimensions)
   {
     m_draw_explicit->Enable(true);
     m_draw_implicit->Enable(true);
+    m_draw_title->Enable(true);
+    m_draw_key->Enable(true);
     m_draw_fgcolor->Enable(true);
     m_draw_fillcolor->Enable(true);
     m_draw_setup2d->Enable(false);
@@ -1820,6 +1828,8 @@ void wxMaximaFrame::DrawPane::SetDimensions(int dimensions)
   {
     m_draw_explicit->Enable(true);
     m_draw_implicit->Enable(true);
+    m_draw_title->Enable(true);
+    m_draw_key->Enable(true);
     m_draw_fgcolor->Enable(true);
     m_draw_fillcolor->Enable(true);
     m_draw_setup2d->Enable(true);
@@ -1854,6 +1864,12 @@ wxMaximaFrame::DrawPane::DrawPane(wxWindow *parent, int id) : wxPanel(parent, id
   grid->Add(m_draw_implicit = new wxButton(this, menu_draw_implicit, _("Implicit Plot")),
             0, style, border);
   m_draw_implicit->SetToolTip(_("Draw all points an equation is true at"));
+  grid->Add(m_draw_title = new wxButton(this, menu_draw_title, _("Diagram title")),
+            0, style, border);
+  m_draw_title->SetToolTip(_("The diagram title"));
+  grid->Add(m_draw_key = new wxButton(this, menu_draw_key, _("Plot name")),
+            0, style, border);
+  m_draw_key->SetToolTip(_("The next plot's title"));
   grid->Add(m_draw_fgcolor = new wxButton(this, menu_draw_fgcolor, _("Line color")),
             0, style, border);
   m_draw_fgcolor->SetToolTip(_("The color of the next line to draw"));
