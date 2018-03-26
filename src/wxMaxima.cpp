@@ -33,6 +33,7 @@
 #include <wx/notifmsg.h>
 #include "wxMaxima.h"
 #include "ImgCell.h"
+#include "DrawWiz.h"
 #include "SubstituteWiz.h"
 #include "IntegrateWiz.h"
 #include "LimitWiz.h"
@@ -2921,7 +2922,7 @@ void wxMaxima::OnIdle(wxIdleEvent &event)
 
 void wxMaxima::UpdateDrawPane()
 {
-    if(m_drawPane)
+  if(m_drawPane)
   {
     EditorCell *editor = m_console->GetActiveCell();
     if(editor)
@@ -4896,11 +4897,17 @@ void wxMaxima::DrawMenu(wxCommandEvent &event)
     return;
 
   UpdateDrawPane();
-
+  int dimensions = m_drawPane->GetDimensions();
+    
   if(m_console != NULL)
     m_console->CloseAutoCompletePopup();
 
-  wxString expr = GetDefaultEntry();
+  wxString expr;
+  if(dimensions < 2)
+    expr = GetDefaultEntry();
+  else
+    expr = "%";
+  
   wxString cmd;
   switch (event.GetId())
   {
@@ -4960,6 +4967,22 @@ void wxMaxima::DrawMenu(wxCommandEvent &event)
       AddDrawParameter(cmd);
     }
     wiz->Destroy();
+    break;
+  }
+  case menu_draw_explicit:
+  {
+    ExplicitWiz *wiz = new ExplicitWiz(this, m_console->m_configuration, expr, dimensions);
+    wiz->Centre(wxBOTH);
+    if (wiz->ShowModal() == wxID_OK)
+    {
+      AddDrawParameter(wiz->GetValue());
+    }
+    wiz->Destroy();
+    break;
+  }
+    
+  case menu_draw_implicit:
+  {
     break;
   }
   }
@@ -8388,6 +8411,10 @@ EVT_UPDATE_UI(menu_show_toolbar, wxMaxima::UpdateMenus)
                 EVT_BUTTON(menu_draw_title,wxMaxima::DrawMenu)
                 EVT_MENU(menu_draw_key,wxMaxima::DrawMenu)
                 EVT_BUTTON(menu_draw_key,wxMaxima::DrawMenu)
+                EVT_MENU(menu_draw_explicit,wxMaxima::DrawMenu)
+                EVT_BUTTON(menu_draw_explicit,wxMaxima::DrawMenu)
+                EVT_MENU(menu_draw_implicit,wxMaxima::DrawMenu)
+                EVT_BUTTON(menu_draw_implicit,wxMaxima::DrawMenu)
                 EVT_IDLE(wxMaxima::OnIdle)
                 EVT_MENU(menu_remove_output, wxMaxima::EditMenu)
                 EVT_MENU_RANGE(menu_recent_document_0, menu_recent_document_29, wxMaxima::OnRecentDocument)
